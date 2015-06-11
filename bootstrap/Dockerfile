@@ -104,20 +104,20 @@ RUN cd $ghc_src_dir && make && make install
 # cross compile, so... fix it so that happy/alex will build later
 #
 # TODO: is this a BUG in the ghc cross compile setup?
-# but i dunno, fuck it
-ENV unlit_dir = $ghc_src_dir/utils/unlit
-RUN cd $ghc_src_dir/ && rm -fr dist && \
-    make GHC=$ghc_src_dir/inplace/bin/ghc-stage1
+#
+ENV unlit_dir $ghc_src_dir/utils/unlit
+RUN cd $unlit_dir && rm -fr dist && \
+    cd $unlit_dir && make GHC=$ghc_src_dir/inplace/bin/ghc-stage1
 
 # copy our rebuilt unlit binary into our target directory
-RUN cp $ghc_src_dir/utils/unlit $target_stage2_ghc_dir/$musl_triple/lib
+RUN cp $unlit_dir/dist/build/tmp/unlit $target_stage2_ghc_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver
 
 # right so we're good with that crap, now we link the stage2 triple binaries
 # into their "normal" counterparts, that is basically ln -s x86_64-linux-musl-blah blah
 # so that if ghc should be called, its called with the right binary name you'd
 # normally use
-RUN cd $target_stage2_dir/lib/$musl_triple && \
-    $(for x in $(echo *); do y=$(echo $x | sed -e 's|$musl_triple\-||'); ln -s ${x} ${y}; done)
+RUN cd $target_stage2_ghc_dir/bin && \
+    $(for x in $(echo *); do y=$(echo $x | sed -e 's|.*musl-||'); ln -s ${x} ${y}; done)
 
 # ok cool, now clean up the settings file to allow us to build ghc
 # from this stage2 build on our target of alpine linux
@@ -139,16 +139,17 @@ RUN cd $target_stage2_dir/lib/$musl_triple && \
 # around it.
 #
 # Regardless, if we don't do this we can't build ghc, so do it.
-ENV settings_file $target_stage2_dir/$musl_triple/settings
-RUN perl -pi -e 's| ("C compiler command".*'| ("C compiler command", "gcc")|' $settings_file && \
-    perl -pi -e 's| ("C compiler flags".*)'| ("C compiler flags", "-nopie -fno-stack-protector")|' $settings_file && \
-    perl -pi -e 's| ("Haskell CPP command",.*| ("Haskell CPP command", "gcc")|' $settings_file && \
-    perl -pi -e 's| ("ld command",.*| ("ld command", "ld")|' $settings_file && \
-    perl -pi -e 's| ("ld flags",.*| ("ld flags", "-fno-PIC")|' $settings_file && \
-    perl -pi -e 's| ("ar command",.*| ("ar command", "ar")|' $settings_file && \
-    perl -pi -e 's| ("ld command",.*| ("ld command", "ld")|' $settings_file
+ENV settings_file $target_stage2_ghc_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
+RUN perl -pi -e 's/.*C compiler command.*/ \(\"C compiler command\"\, \"gcc\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*C compiler flags.*/ \(\"C compiler flags\"\, \"-fno-stack-protector -nopie\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*Haskell CPP command.*/ \(\"Haskell CPP command\"\,\"gcc\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*ld command.*/ \(\"ld command\"\,\"ld\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\, \"-fno-PIC\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*ar command.*/ \(\"ar command\"\,\"ar\"\)\,/' $settings_file
 
 # Ok so tar/xz the stage2 compiler for use on our destination
-RUN cd / && tar -Ipixz -cf /tmp/crossghc-$cross_ghc_ver.tar.xz $target_stage2_ghc_dir
+RUN cd / && tar -Ipixz -cf /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz $target_stage2_ghc_dir
+
+# scp /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz mitch@10.11.12.2:/nexus/afp/Developer/Vagrant
 
 CMD ["bash"]
