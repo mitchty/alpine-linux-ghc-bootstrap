@@ -1,11 +1,10 @@
-SRC_HC_OPTS          = -H64m -O0 -fPIC
-GhcStage1HcOpts      = -O -fPIC
-GhcStage2HcOpts      = -O0 -fPIC
-GhcLibHcOpts         = -O -fPIC
+SRC_HC_OPTS          = -H64m -O0
+GhcStage1HcOpts      = -O
+GhcStage2HcOpts      = -O0
+GhcLibHcOpts         = -O
 GhcHcOpts            = -Rghc-timing
 SplitObjs            = NO
 BeConservative       = YES
-SRC_CC_OPTS          = -fPIC
 HADDOCK_DOCS         = NO
 BUILD_DOCBOOK_HTML   = NO
 BUILD_DOCBOOK_PS     = NO
