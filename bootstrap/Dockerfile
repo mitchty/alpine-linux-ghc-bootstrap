@@ -78,20 +78,7 @@ ENV LD_LIBRARY_PATH $cross_base/$musl_triple/$musl_triple/lib:$LD_LIBRARY_PATH
 # also, don't build any documentation cause who gives a shit about
 # that for temporary crap
 RUN cd $ghc_src_dir && perl boot
-ENV buildmk $ghc_src_dir/mk/build.mk
-RUN echo "SRC_HC_OPTS = -H64m -O0" > $buildmk && \
-    echo "GhcStage1HcOpts = -O" >> $buildmk && \
-    echo "GhcStage2HcOpts = -O0 -fPIC" >> $buildmk && \
-    echo "GhcLibHcOpts = -O -fPIC" >> $buildmk && \
-    echo "SplitObjs = NO" >> $buildmk && \
-    echo "SRC_CC_OPTS = -fPIC" >> $buildmk && \
-    echo "HADDOCK_DOCS = NO" >> $buildmk && \
-    echo "BUILD_DOCBOOK_HTML = NO" >> $buildmk && \
-    echo "BUILD_DOCBOOK_PS   = NO" >> $buildmk && \
-    echo "BUILD_DOCBOOK_PDF  = NO" >> $buildmk && \
-    echo "INTEGER_LIBRARY    = integer-simple" >> $buildmk && \
-    echo "DYNAMIC_BY_DEFAULT   = NO" >> $buildmk && \
-    echo "DYNAMIC_GHC_PROGRAMS = NO" >> $buildmk
+COPY build.mk $ghc_src_dir/mk/build.mk
 RUN cd $ghc_src_dir && ./configure --with-gcc=$musl_triple-gcc \
      --target=$musl_triple \
      --enable-unregisterised
@@ -119,37 +106,16 @@ RUN cp $unlit_dir/dist/build/tmp/unlit $target_stage2_ghc_dir/lib/x86_64-pc-linu
 RUN cd $target_stage2_ghc_dir/bin && \
     $(for x in $(echo *); do y=$(echo $x | sed -e 's|.*musl-||'); ln -s ${x} ${y}; done)
 
-# ok cool, now clean up the settings file to allow us to build ghc
-# from this stage2 build on our target of alpine linux
-#
-# Note: we disable position independent code cause reasons
-# reasons being the stage2 build we built can't determine the difference
-# between a library an not, so we'll just hack around it for now
-#
-# This is JUST to natively build our compiler on alpine linux so whatever
-#
-# Also, we're changing the ghc settings file to not use the cross compiler
-# binaries but the "normal" gcc/ld/ar on the native install
-#
-# One more thing, but also changing gcc/ld flags to not use PIC code
-#
-# I'm not 100% why yet but it might be related to alpine linux grsecurity stuff.
-# LONG story short, ld will try to treat libraries as executables and say:
-# recompile with -fPIC, which doesn't work, so whatever who gives a shit work
-# around it.
-#
-# Regardless, if we don't do this we can't build ghc, so do it.
-ENV settings_file $target_stage2_ghc_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
-RUN perl -pi -e 's/.*C compiler command.*/ \(\"C compiler command\"\, \"gcc\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*C compiler flags.*/ \(\"C compiler flags\"\, \"-fno-stack-protector -nopie\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*Haskell CPP command.*/ \(\"Haskell CPP command\"\,\"gcc\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*ld command.*/ \(\"ld command\"\,\"ld\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\, \"-fno-PIC\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*ar command.*/ \(\"ar command\"\,\"ar\"\)\,/' $settings_file
-
 # Ok so tar/xz the stage2 compiler for use on our destination
 RUN cd / && tar -Ipixz -cf /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz $target_stage2_ghc_dir
 
+# I'm lazy, and sick of typing this, you'll need to do something else
+# at least until docker 1.7 comes out and I can move files to/from
+# a build context.
+#
+# For now my strategy is copy files to a webserver and use that.
+# It works well enough.
+#
 # scp /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz mitch@10.11.12.2:/nexus/afp/Developer/Vagrant
 
 CMD ["bash"]
