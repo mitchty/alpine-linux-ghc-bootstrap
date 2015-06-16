@@ -106,6 +106,13 @@ RUN cp $unlit_dir/dist/build/tmp/unlit $target_stage2_ghc_dir/lib/x86_64-pc-linu
 RUN cd $target_stage2_ghc_dir/bin && \
     $(for x in $(echo *); do y=$(echo $x | sed -e 's|.*musl-||'); ln -s ${x} ${y}; done)
 
+# Change gcc/ar/ld to their non cross compiler versions
+ENV settings_file $target_stage2_ghc_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
+RUN perl -pi -e 's/.*C compiler command.*/ \(\"C compiler command\"\, \"gcc\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*Haskell CPP command.*/ \(\"Haskell CPP command\"\,\"gcc\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*ld command.*/ \(\"ld command\"\,\"ld\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*ar command.*/ \(\"ar command\"\,\"ar\"\)\,/' $settings_file
+
 # Ok so tar/xz the stage2 compiler for use on our destination
 RUN cd / && tar -Ipixz -cf /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz $target_stage2_ghc_dir
 
