@@ -25,9 +25,8 @@ ENV alex_path /opt/alex/$alex_ver/bin
 ENV cross_base /opt/cross
 ENV crossmusl_tmp /tmp/musl-cross
 ENV ghc_src_dir $cross_base/src/ghc
-ENV target_stage2_ghc_dir /usr/local
+ENV target_stage2_ghc_dir /usr/local/cross
 ENV cross_ghc_ver 7.10.1
-# export PATH=/opt/cross/x86_64-linux-musl/bin:/opt/ghc/7.10.1/bin:/opt/happy/1.19.5/bin:/opt/alex/3.1.4/bin:$PATH
 ENV PATH=$cross_base/$musl_triple/bin:$ghc_path:$happy_path:$alex_path:$PATH
 
 # make our ubuntu env... not suck
@@ -42,10 +41,11 @@ RUN \
 # gcc musl libc cross compiler installs to /opt/cross so we'll just use that
 # cause IDGAF where this is located
 # Note, only building x86_64 for now, research arm later.
-RUN hg clone https://bitbucket.org/GregorR/musl-cross $crossmusl_tmp
-RUN echo "GCC_BUILTIN_PREREQS=yes" >> $crossmusl_tmp/config.sh
-RUN echo "ARCH=x86_64" >> $crossmusl_tmp/config.sh
-RUN cd $crossmusl_tmp && ./build.sh
+RUN hg clone https://bitbucket.org/GregorR/musl-cross $crossmusl_tmp && \
+    echo "GCC_BUILTIN_PREREQS=yes" >> $crossmusl_tmp/config.sh && \
+    echo "ARCH=x86_64" >> $crossmusl_tmp/config.sh && \
+    cd $crossmusl_tmp && ./build.sh && \
+    cd / && rm -fr $crossmusl_tmp
 
 # ncurses needs to be in our cross compiler setup or terminfo won't build
 RUN cd /tmp && curl -L http://ftp.gnu.org/gnu/ncurses/ncurses-5.9.tar.gz | \
@@ -57,34 +57,29 @@ RUN cd /tmp && curl -L http://ftp.gnu.org/gnu/ncurses/ncurses-5.9.tar.gz | \
 RUN perl -pi -e 's/linux\-uclibc/linux\-musl/g' /tmp/ncurses*/config.sub
 RUN cd /tmp/ncurses-5.9 && ./configure --target=$musl_triple --with-gcc=$musl_triple-gcc --with-shared --host=$musl_triple --with-build-cpp=$musl_triple-g++ --prefix=$cross_base/$musl_triple/$musl_triple && \
     make && \
-    make install
+    make install && \
+    cd $cross_base/$musl_triple/$musl_triple/include/ncurses && cp *.h ..
 
-# ncurses installs headers to include/ncurses, /sigh
-# so copy those headers up a dir cause who cares about this temp crap
-# its only to get us to our end goal
-RUN cd $cross_base/$musl_triple/$musl_triple/include/ncurses && cp *.h ..
-
-# the wiki said so so I do
-RUN git config --global url."git://github.com/ghc/packages-".insteadOf git://github.com/ghc/packages/
-
-# get our ghc version to build source code
-RUN git clone -b ghc-$cross_ghc_ver-release --recursive git://git.haskell.org/ghc.git $ghc_src_dir
+RUN cd /tmp && mkdir -p $ghc_src_dir && curl -L "https://www.haskell.org/ghc/dist/7.10.1/ghc-7.10.1-src.tar.bz2" | bunzip2 -c - | tar xf - -C $ghc_src_dir
 
 # need it or we can't link libcurses.5.so during build
 ENV LD_LIBRARY_PATH $cross_base/$musl_triple/$musl_triple/lib:$LD_LIBRARY_PATH
 
+ENV ghc_src $ghc_src_dir/ghc-$cross_ghc_ver
 # build our stage2 for our target
 # -fPIC/SRC_CC_OPTS may not be needed, need to validate it yet
 # also, don't build any documentation cause who gives a shit about
 # that for temporary crap
-RUN cd $ghc_src_dir && perl boot
-COPY build.mk $ghc_src_dir/mk/build.mk
-RUN cd $ghc_src_dir && ./configure --with-gcc=$musl_triple-gcc \
+RUN cd $ghc_src && perl boot
+COPY build.mk $ghc_src/mk/build.mk
+RUN cd $ghc_src && ./configure --with-gcc=$musl_triple-gcc \
      --target=$musl_triple \
-     --enable-unregisterised
+     --enable-unregisterised \
+     --prefix=$target_stage2_ghc_dir
 
 # build our stage2
-RUN cd $ghc_src_dir && make -j7 && make install
+RUN cd $ghc_src && make -j7
+RUN cd $ghc_src && make install
 
 # so unlit which is a c program btw appears to be compiled with the host
 # ghc and not the ghc stage1 like you'd think would happen for a stage2
@@ -92,9 +87,9 @@ RUN cd $ghc_src_dir && make -j7 && make install
 #
 # TODO: is this a BUG in the ghc cross compile setup?
 #
-ENV unlit_dir $ghc_src_dir/utils/unlit
+ENV unlit_dir $ghc_src/utils/unlit
 RUN cd $unlit_dir && rm -fr dist && \
-    cd $unlit_dir && make GHC=$ghc_src_dir/inplace/bin/ghc-stage1
+    cd $unlit_dir && make GHC=$ghc_src/inplace/bin/ghc-stage1
 
 # copy our rebuilt unlit binary into our target directory
 RUN cp $unlit_dir/dist/build/tmp/unlit $target_stage2_ghc_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver
