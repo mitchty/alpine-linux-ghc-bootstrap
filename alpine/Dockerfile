@@ -36,17 +36,19 @@ RUN apk add --update \
 RUN git config --global url."git://github.com/ghc/packages-".insteadOf git://github.com/ghc/packages/ && \
     git clone -b ghc-7.10.1-release --recursive git://git.haskell.org/ghc.git /tmp/ghc
 
-RUN touch /tmp && echo 0
+RUN touch /tmp && echo 1
 
 # get the phase2 compiler we built earlier, its in /usr/local
 RUN cd / && curl -L 'http://10.11.12.2:8000/ghc-x86_64-linux-musl-7.10.1.tar.xz' | \
-    xz -c -d - | tar xf -
+   xz -c -d - | tar xf -
+# RUN cd / && curl -L 'http://10.11.12.2:8000/meh.tar.xz' | \
+#     xz -c -d - | tar xf -
 
-ENV PATH $PATH:/usr/local
+ENV PATH $PATH:/usr/local/bin
 
 ENV settings_file /usr/local/lib/x86_64-pc-linux-musl-ghc-7.10.1/settings
 RUN perl -pi -e 's/.*C compiler flags.*/ \(\"C compiler flags\"\, \"-fno-stack-protector -nopie\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\, \"-fnoPIC\"\)\,/' $settings_file
+    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\, \"-fno-PIC\"\)\,/' $settings_file
 
 # Turn off PaX for ghc, or it can't call ld to relocate .text symbols and
 # will send you down rabbit holes regarding -fPIC nonsense
@@ -84,15 +86,25 @@ RUN cd /tmp/ghc && ./configure
 RUN cd /tmp/ghc && make
 RUN cd /tmp/ghc && make install
 
+ENV settings_file /usr/local/lib/ghc-7.10.1/settings
+RUN perl -pi -e 's/.*C compiler flags.*/ \(\"C compiler flags\"\, \"-fno-stack-protector -nopie\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\, \"-fno-PIC\"\)\,/' $settings_file
+
+# Turn off PaX for ghc, or it can't call ld to relocate .text symbols and
+# will send you down rabbit holes regarding -fPIC nonsense
+RUN paxctl -cm /usr/local/lib/ghc-7.10.1/bin/ghc
+
 # ok nuke our user .cabal/.ghc dirs from the stage2 boostrap compiler
 RUN rm -fr /root/.cabal /root/.ghc
 
 # Just make sure things still work
 RUN cd /tmp/ghc/bindisttest && ghc --make HelloWorld.lhs && ./HelloWorld && \
-    ghc -optl -static --make HelloWorld.lhs && ./HelloWorld && \
-    ghc -optl -static -fllvm --make HelloWorld.lhs && ./HelloWorld
+   ghc -optl -static --make HelloWorld.lhs && ./HelloWorld && \
+   ghc -optl -static -fllvm --make HelloWorld.lhs && ./HelloWorld
 
 # Ok rebuild cabal with our now native compiler
+RUN rm -fr /tmp/cabal-install-1.22.3.0
+RUN cd /tmp && curl -L "https://www.haskell.org/cabal/release/cabal-install-1.22.3.0/cabal-install-1.22.3.0.tar.gz" | gunzip -c - | tar xf -
 RUN cd /tmp/cabal-install-1.22.3.0 && ./bootstrap.sh --global
 
 # Cleanup the old and busted stuff used to get us a native compiler

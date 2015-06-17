@@ -84,7 +84,7 @@ RUN cd $ghc_src_dir && ./configure --with-gcc=$musl_triple-gcc \
      --enable-unregisterised
 
 # build our stage2
-RUN cd $ghc_src_dir && make && make install
+RUN cd $ghc_src_dir && make -j7 && make install
 
 # so unlit which is a c program btw appears to be compiled with the host
 # ghc and not the ghc stage1 like you'd think would happen for a stage2

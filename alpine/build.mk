@@ -1,2 +1,14 @@
-V               = 1
+V               = 0
+DYNAMIC_GHC_PROGRAMS = NO
+DYNAMIC_BY_DEFAULT   = NO
+GhcLibWays = v
+SRC_HC_OPTS = -O2 -H64m -optl-fPIC
+SRC_CC_OPTS = -O2 -fPIC
+#GhcStage1HcOpts = -O -fPIC
+#GhcStage2HcOpts = -O2 -fPIC
+GhcHcOpts = -Rghc-timing
+GhcLibHcOpts = -O2 -fPIC
 BeConservative  = YES
+BUILD_DOCBOOK_HTML   = NO
+BUILD_DOCBOOK_PS     = NO
+BUILD_DOCBOOK_PDF    = NO

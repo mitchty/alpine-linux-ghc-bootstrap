@@ -8,9 +8,9 @@ url="http://haskell.org"
 arch="x86_64"
 license="custom"
 depends="perl gmp5 gcc"
-depends_dev="perl"
+depends_dev="perl paxctl"
 #depends="perl gcc llvm libffi gmp5"
-#depends_dev="perl git zlib-dev gmp-dev llvm-dev libffi-dev ncurses-dev"
+#depends_dev="perl git zlib-dev gmp-dev llvm-dev libffi-dev ncurses-dev pa"
 makedepends="$depends_dev"
 install=""
 subpackages="$pkgname-dev $pkgname-doc"
@@ -34,14 +34,17 @@ build() {
 	export PATH=$PATH:~/.cabal/bin
 	cat > mk/build.mk << "FIN"
 V               = 1
-GhcLibWays      = $(if $(filter $(DYNAMIC_GHC_PROGRAMS),YES),v dyn,v)
-GhcFAsm         = $(if $(filter $(GhcWithNativeCodeGen),YES),-fasm,)
-SRC_HC_OPTS     = -O -H64m -fllvm -fPIC
-GhcHcOpts       = -Rghc-timing
-GhcLibHcOpts    = -O2
-GhcLibWays     += p
-SRC_CC_OPTS     = -fPIC
+DYNAMIC_GHC_PROGRAMS = NO
+DYNAMIC_BY_DEFAULT   = NO
+GhcLibWays = v
+SRC_HC_OPTS = -O2 -H64m -optl-fPIC
+SRC_CC_OPTS = -O2 -fPIC
+GhcHcOpts = -Rghc-timing
+GhcLibHcOpts = -O2 -fPIC
 BeConservative  = YES
+BUILD_DOCBOOK_HTML   = NO
+BUILD_DOCBOOK_PS     = NO
+BUILD_DOCBOOK_PDF    = NO
 FIN
 	perl boot || return 1
 	./configure \
@@ -49,16 +52,19 @@ FIN
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--infodir=/usr/share/info \
-		--localstatedir=/var \
-    CFLAGS=-fnopie \
-    LDFLAGS=-fnopie \
+		--localstatedir=/var
 		|| return 1
-	make -j4 || return 1
+	make || return 1
 }
 
 package() {
 	cd "$_builddir"
 	cd ghc
 	make DESTDIR="$pkgdir" install || return 1
+  settings=$(find "$pkgdir" -name settings)
+  perl -pi -e 's/.*C compiler flags.*/ \(\"C compiler flags\"\, \"-fno-stack-protector -nopie\"\)\,/' "$settings" && \
+    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\, \"-fno-PIC\"\)\,/' "$settings" || return 1
+  ghc_bin=$(find $pkdir/lib -name ghc -type f)
+  paxctl -cm "$ghc_bin" || return 1
 	rm -f "$pkgdir"/usr/lib/*.la
 }
