@@ -1,4 +1,4 @@
-FROM alpine:3.1
+FROM alpine:latest
 
 ENV username "Mitch Tishmack"
 ENV useremail mitch.tishmack@gmail.com
@@ -28,37 +28,38 @@ RUN apk add --update \
     bash \
     libffi-dev \
     libxslt-dev \
-    llvm-dev \
     zlib-dev \
+    binutils-gold \
     paxctl
 
 # checkout ghc source release
-RUN git config --global url."git://github.com/ghc/packages-".insteadOf git://github.com/ghc/packages/ && \
-    git clone -b ghc-7.10.1-release --recursive git://git.haskell.org/ghc.git /tmp/ghc
+RUN cd /tmp && curl -L "https://www.haskell.org/ghc/dist/7.10.1/ghc-7.10.1-src.tar.bz2" | bunzip2 -c - | tar xf -
+
+ENV src_dir /tmp/ghc-7.10.1
 
 RUN touch /tmp && echo 1
 
 # get the phase2 compiler we built earlier, its in /usr/local
-RUN cd / && curl -L 'http://10.11.12.2:8000/ghc-x86_64-linux-musl-7.10.1.tar.xz' | \
+# RUN cd / && curl -L 'http://10.11.12.2:8000/ghc-x86_64-linux-musl-7.10.1.tar.xz' | \
+#    xz -c -d - | tar xf -
+RUN cd / && curl -L 'http://10.11.12.2:8000/bootstrap1.tar.xz' | \
    xz -c -d - | tar xf -
-# RUN cd / && curl -L 'http://10.11.12.2:8000/meh.tar.xz' | \
-#     xz -c -d - | tar xf -
 
-ENV PATH $PATH:/usr/local/bin
+ENV PATH /usr/local/bin:$PATH:/usr/local/cross/bin:/root/.cabal/bin
 
-ENV settings_file /usr/local/lib/x86_64-pc-linux-musl-ghc-7.10.1/settings
-RUN perl -pi -e 's/.*C compiler flags.*/ \(\"C compiler flags\"\, \"-fno-stack-protector -nopie\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\, \"-fno-PIC\"\)\,/' $settings_file
+# TODO: fixme
+ENV settings_file /usr/local/cross/lib/x86_64-pc-linux-musl-ghc-7.10.1/settings
+RUN perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' $settings_file
 
 # Turn off PaX for ghc, or it can't call ld to relocate .text symbols and
 # will send you down rabbit holes regarding -fPIC nonsense
-RUN paxctl -cm /usr/local/lib/x86_64-pc-linux-musl-ghc-7.10.1/bin/ghc
+RUN paxctl -cm /usr/local/cross/lib/x86_64-pc-linux-musl-ghc-7.10.1/bin/ghc
 
 # Just make sure we can build basic stuff quick.
-RUN cd /tmp/ghc/bindisttest && ghc --make HelloWorld.lhs && ./HelloWorld && \
+RUN cd $src_dir/bindisttest && ghc --make HelloWorld.lhs && ./HelloWorld && \
     ghc -optl -static --make HelloWorld.lhs && ./HelloWorld && \
     ghc -optl -static -fllvm --make HelloWorld.lhs && ./HelloWorld && \
-    rm HelloWorld
+    rm HelloWorld *.o *.hi
 
 # Right, so need to build cabal+cabal-install+happy+alex to build our real ghc
 
@@ -71,24 +72,20 @@ ENV NO_DOCUMENTATION obviously
 RUN cd /tmp && curl -L "https://www.haskell.org/cabal/release/cabal-install-1.22.3.0/cabal-install-1.22.3.0.tar.gz" | gunzip -c - | tar xf -
 RUN cd /tmp/cabal-install-1.22.3.0 && ./bootstrap.sh --global
 
-# pimp, we have cabal now
-ENV PATH $PATH:/root/.cabal/bin
-
 # and install happy+alex so we can build ghc
 RUN cabal update && cabal install happy alex
 
-COPY build.mk /tmp/ghc/mk/build.mk
-RUN cd /tmp/ghc && perl boot
+COPY build.mk $src_dir/mk/build.mk
+RUN cd $src_dir && perl boot
 
 # stick this in /usr/local alongside the stage2 ghc for now, we'll use this
 # compiler to build our actual ghc apk
-RUN cd /tmp/ghc && ./configure
-RUN cd /tmp/ghc && make
-RUN cd /tmp/ghc && make install
+RUN cd $src_dir && ./configure
+RUN cd $src_dir && make -j7
+RUN cd $src_dir && make install
 
 ENV settings_file /usr/local/lib/ghc-7.10.1/settings
-RUN perl -pi -e 's/.*C compiler flags.*/ \(\"C compiler flags\"\, \"-fno-stack-protector -nopie\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\, \"-fno-PIC\"\)\,/' $settings_file
+RUN perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' $settings_file
 
 # Turn off PaX for ghc, or it can't call ld to relocate .text symbols and
 # will send you down rabbit holes regarding -fPIC nonsense
@@ -98,7 +95,7 @@ RUN paxctl -cm /usr/local/lib/ghc-7.10.1/bin/ghc
 RUN rm -fr /root/.cabal /root/.ghc
 
 # Just make sure things still work
-RUN cd /tmp/ghc/bindisttest && ghc --make HelloWorld.lhs && ./HelloWorld && \
+RUN cd $src_dir/bindisttest && ghc --make HelloWorld.lhs && ./HelloWorld && \
    ghc -optl -static --make HelloWorld.lhs && ./HelloWorld && \
    ghc -optl -static -fllvm --make HelloWorld.lhs && ./HelloWorld
 

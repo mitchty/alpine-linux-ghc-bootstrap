@@ -54,6 +54,7 @@ FIN
 		--infodir=/usr/share/info \
 		--localstatedir=/var
 		|| return 1
+	make -j8 || return 1
 	make || return 1
 }
 
@@ -61,10 +62,9 @@ package() {
 	cd "$_builddir"
 	cd ghc
 	make DESTDIR="$pkgdir" install || return 1
-  settings=$(find "$pkgdir" -name settings)
-  perl -pi -e 's/.*C compiler flags.*/ \(\"C compiler flags\"\, \"-fno-stack-protector -nopie\"\)\,/' "$settings" && \
-    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\, \"-fno-PIC\"\)\,/' "$settings" || return 1
-  ghc_bin=$(find $pkdir/lib -name ghc -type f)
-  paxctl -cm "$ghc_bin" || return 1
+        settings=$(find "$pkgdir" -name settings)
+        perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
+        ghc_bin=$(find $pkdir/lib -name ghc -type f)
+        paxctl -cm "$ghc_bin" || return 1
 	rm -f "$pkgdir"/usr/lib/*.la
 }
