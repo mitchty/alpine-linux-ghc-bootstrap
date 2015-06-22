@@ -7,10 +7,8 @@ pkgdesc="The Glasgow haskell compiler"
 url="http://haskell.org"
 arch="x86_64"
 license="custom"
-depends="perl gmp5 gcc"
-depends_dev="perl paxctl"
-#depends="perl gcc llvm libffi gmp5"
-#depends_dev="perl git zlib-dev gmp-dev llvm-dev libffi-dev ncurses-dev pa"
+depends="gcc"
+depends_dev="perl paxctl binutils-gold libxslt libffi-dev"
 makedepends="$depends_dev"
 install=""
 subpackages="$pkgname-dev $pkgname-doc"
@@ -30,41 +28,40 @@ prepare() {
 build() {
 	cd "$_builddir"
 	cabal update
+  cabal sandbox init
 	cabal install happy alex
-	export PATH=$PATH:~/.cabal/bin
+	export PATH=$PATH:$(pwd)/.cabal-sandbox/bin
 	cat > mk/build.mk << "FIN"
-V               = 1
-DYNAMIC_GHC_PROGRAMS = NO
-DYNAMIC_BY_DEFAULT   = NO
-GhcLibWays = v
-SRC_HC_OPTS = -O2 -H64m -optl-fPIC
-SRC_CC_OPTS = -O2 -fPIC
-GhcHcOpts = -Rghc-timing
-GhcLibHcOpts = -O2 -fPIC
+SRC_HC_OPTS += -optl-pthread
+SRC_HC_OPTS += -optl-B/usr/bin/ld.gold
+SRC_HC_OPTS += -H32m -O1 -fPIC
+SRC_CC_OPTS          += -O0 -fasm -fPIC
+GhcLibHcOpts         += -O0 -fasm -fPIC
+GhcHcOpts += -Rghc-timing -fPIC
+SplitObjs = NO
+STRIP = :
+GhcRtsCcOpts += -O0
+GhcRtsWays += p
+V               = 0
 BeConservative  = YES
-BUILD_DOCBOOK_HTML   = NO
-BUILD_DOCBOOK_PS     = NO
-BUILD_DOCBOOK_PDF    = NO
 FIN
 	perl boot || return 1
+  mv libraries/integer-gmp integer-gmp.old || return 1
+  ln -s integer-gmp2 libraries/integer-gmp || return 1
 	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--infodir=/usr/share/info \
-		--localstatedir=/var
-		|| return 1
+		--localstatedir=/var || return 1
 	make -j8 || return 1
 	make || return 1
 }
 
 package() {
 	cd "$_builddir"
-	cd ghc
 	make DESTDIR="$pkgdir" install || return 1
-        settings=$(find "$pkgdir" -name settings)
-        perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
-        ghc_bin=$(find $pkdir/lib -name ghc -type f)
-        paxctl -cm "$ghc_bin" || return 1
+  settings=$(find "$pkgdir" -name settings -type f)
+  perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
 	rm -f "$pkgdir"/usr/lib/*.la
 }
