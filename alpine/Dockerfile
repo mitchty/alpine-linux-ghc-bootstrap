@@ -126,12 +126,20 @@ RUN adduser -D $builduser && \
 
 # need to run keygen or abuild whinges
 RUN su -l $builduser -c "abuild-keygen -a -i"
-COPY APKBUILD /home/build/aports/testing/ghc/APKBUILD
+COPY APKBUILD.ghc /home/build/aports/testing/ghc/APKBUILD
 
 # get checksums
 RUN su -l $builduser -c "cd ~/aports/testing/ghc && abuild checksum"
 
 # build the shit, hopefully
 RUN su -l $builduser -c "cd ~/aports/testing/ghc && abuild -r"
+
+RUN su -l $builduser -c "mkdir aports/testing/cabal-install"
+COPY APKBUILD.cabal-install /home/build/aports/testing/cabal-install/APKBUILD
+RUN su -l $builduser -c "cd ~/aports/testing/cabal-install && abuild checksum"
+RUN rm /home/build/packages/testing/x86_64/APKINDEX.tar.gz
+RUN su -l $builduser -c "cd ~/aports/testing/cabal-install && abuild -r"
+
+RUN echo "/home/build/packages/testing" >> /etc/apk/repositories
 
 CMD ["bash"]
