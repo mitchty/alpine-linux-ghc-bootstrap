@@ -22,12 +22,13 @@ ENV musl_triple x86_64-linux-musl
 ENV ghc_path /opt/ghc/$bootstrap_ghc_ver/bin
 ENV happy_path /opt/happy/$happy_ver/bin
 ENV alex_path /opt/alex/$alex_ver/bin
+ENV cabal_path /opt/cabal/$cabal_ver/bin
 ENV cross_base /opt/cross
 ENV crossmusl_tmp /tmp/musl-cross
 ENV ghc_src_dir $cross_base/src/ghc
 ENV target_stage2_ghc_dir /usr/local/cross
 ENV cross_ghc_ver 7.10.1
-ENV PATH=$cross_base/$musl_triple/bin:$ghc_path:$happy_path:$alex_path:$PATH
+ENV PATH $cross_base/$musl_triple/bin:$ghc_path:$happy_path:$alex_path:$cabal_path:$PATH
 
 # make our ubuntu env... not suck
 RUN \
