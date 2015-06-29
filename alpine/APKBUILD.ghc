@@ -38,13 +38,12 @@ build() {
 		xz -d -c "$BOOTSTRAP" | \
 		tar xf - || return 1
 		cabal_version=1.22.6.0
-		cabal_install="cabal-install-${cabal_version}"
 		cd "$_builddir"
 		echo 'main = putStrLn "ok"'> test.hs || return 1
 		ghc --make test.hs || return 1
 		./test || return 1
 		rm test test.o test.hi || return 1
-		curl -L "https://www.haskell.org/cabal/release/${cabal-install}/${cabal-install}.tar.gz" | gunzip -c - | tar xf - || return 1
+		curl -L "https://www.haskell.org/cabal/release/cabal-install-${cabal_version}/cabal-install-${cabal_version}.tar.gz" | gunzip -c - | tar xf - || return 1
 		cd "cabal-install-${cabal_version}" || return 1
 		export NO_DOCUMENTATION=yep
 		export DEFAULT_CONFIGURE_OPTS="--shared"
