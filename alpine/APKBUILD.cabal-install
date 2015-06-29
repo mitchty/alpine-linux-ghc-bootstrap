@@ -10,6 +10,9 @@ license="custom"
 depends="gmp zlib"
 depends_dev="bash gmp-dev zlib-dev cabal-install linux-headers"
 makedepends="ghc-dev gzip $depends_dev"
+if [ "$BOOTSTRAP" == "" ]; then
+	makedepends="ghc-dev cabal-install $makedepends"
+fi
 install=""
 subpackages="$pkgname-doc"
 source="https://www.haskell.org/cabal/release/cabal-install-$pkgver/cabal-install-$pkgver.tar.gz"
