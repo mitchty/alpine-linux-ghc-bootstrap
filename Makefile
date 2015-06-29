@@ -2,6 +2,7 @@
 BOOTSTRAPXZ=ghc-x86_64-linux-musl-7.10.1.tar.xz
 BSDIR=bootstrap
 BSNAME=ghcbootstrap
+ALPINENAME=ghcapk
 
 all: bootstrap apk
 
@@ -16,4 +17,5 @@ clean:
 	-rm alpine/$(BOOSTRAPXZ)
 
 apk:
-	cd alpine && docker build -t ghcapk .
+	cd alpine && docker build -t $(ALPINENAME) .
+	docker run -a stdout $(ALPINENAME):latest cat /tmp/apk.tar | tar xvf -

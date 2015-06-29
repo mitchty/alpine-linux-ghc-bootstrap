@@ -13,7 +13,7 @@ COPY mitch.tishmack@gmail.com-55881c97.rsa.pub /etc/apk/keys/mitch.tishmack@gmai
 RUN apk update
 RUN apk add ghc-dev cabal-install bash linux-headers musl-dev gmp-dev zlib-dev
 ENV PATH ${PATH}:/root/.cabal/bin
-RUN cabal update 
+RUN cabal update
 RUN cabal install mtl network-uri parsec random stm text zlib network alex happy
 CMD ["bash"]
 ```
@@ -28,19 +28,21 @@ If you don't install *gmp-dev* you'll need to set LD_LIBRARY_PATH to */usr/lib/e
 
 I have looked at the Gentoo, Arch, Debian, and Fedora ports of ghc. I'll probably end up incorporating their strategies a bit more. What you see in this one is mostly Debian inspired.
 
-# How did I port this?
+# How did I port this?/how does this thing work?
 
-Well everything is in stage1/2/3. Note, it would take a bit of modification to use the Dockerfiles within. They assume you're on my network.
+Painfully really, look in the history for examples of the pain.
 
-Its really only useful if you want to see how I built the cross compiler and built the preliminary ghc on alpine linux.
+But as to how does this work, since this port is for porting ghc for x86_64 only at the moment, the underlying use is of docker primarily.
 
-A quick summary though, stage1 is an ubuntu image that uses the sabotage linux musl gcc cross compiler to build ghc as a cross compiler.
+The overall process is as follows:
+- you type make with docker running
+- you receive bacon, err finished apks after all is done
 
-I take that entire compiler install, use that for the input to stage2 to compile ghc natively in alpine linux, then build a bootstrap apk of ghc and cabal-install.
-
-Finally taking those apk's that essentially just don't require themselves to build, and built the "final" apks that are signed on s3.
-
-Thats pretty much it really.
+So what actually happens underneath is as follows:
+- I use ubuntu+musl-cross to build a ghc cross compiler and tar+xz that sucker
+- Then I use that to build bootstrap apks for ghc/cabal-install
+- Then I use those to build the actual apks you use.
+- Those apks get yoinked out of the docker container to PWD
 
 # Will this go upstream into Alpine proper?
 

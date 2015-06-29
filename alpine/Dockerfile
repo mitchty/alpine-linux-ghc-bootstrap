@@ -72,3 +72,6 @@ WORKDIR /home/$builduser/aports/testing/cabal-install
 RUN \
     rm ~/packages/testing/x86_64/APKINDEX.tar.gz && \
     abuild -r
+
+WORKDIR /home/$builduser/aports/testing
+RUN find . -name "*.apk" -type f | tar cf /tmp/apk.tar
