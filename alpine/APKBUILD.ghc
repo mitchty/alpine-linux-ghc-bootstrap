@@ -8,8 +8,13 @@ url="http://haskell.org"
 arch="x86_64"
 license="custom"
 depends="bash gcc perl gmp-dev libffi"
-depends_dev="xz linux-headers perl ncurses-dev gmp-dev libtool autoconf automake binutils-gold libxslt libffi-dev musl-dev"
-makedepends="$depends_dev"
+depends_dev="linux-headers perl ncurses-dev gmp-dev libtool autoconf automake libxslt libffi-dev musl-dev"
+makedepends="bzip2 xz gzip $depends_dev"
+# If we aren't bootstrapping, we require the current ghc
+# and cabal-install to compile ghc
+if [ "$BOOTSTRAP" == "" ]; then
+	makedepends="ghc-dev cabal-install $makedepends"
+fi
 install=""
 subpackages="$pkgname-dev $pkgname-doc"
 source="https://www.haskell.org/ghc/dist/$pkgver/ghc-$pkgver-src.tar.bz2 ghc-fpic.patch"
@@ -27,25 +32,28 @@ prepare() {
 
 build() {
 	set -x
-	# bootstrap begins
-	export PATH="${PATH}:/usr/local/cross/bin:~/.cabal/bin:$_builddir/.cabal-sandbox/bin"
-	cd / || return 1
-	xz -d -c /tmp/ghc-x86_64-linux-musl-7.10.1.tar.xz | \
-	tar xf - || return 1
-	cabal_version=1.22.6.0
-	cd "$_builddir"
-	echo 'main = putStrLn "ok"'> test.hs || return 1
-	ghc --make test.hs || return 1
-	./test || return 1
-	curl -L "https://www.haskell.org/cabal/release/cabal-install-${cabal_version}/cabal-install-${cabal_version}.tar.gz" | gunzip -c - | tar xf - || return 1
-	cd "cabal-install-${cabal_version}" || return 1
-	export NO_DOCUMENTATION=yep
-	export DEFAULT_CONFIGURE_OPTS="--shared"
-	./bootstrap.sh --sandbox || return 1
-	rm -fr "cabal-install-${cabal_version}" || return 1
+	if [ "$BOOTSTRAP" != "" ]; then
+		export PATH="${PATH}:/usr/local/cross/bin:~/.cabal/bin:$_builddir/.cabal-sandbox/bin"
+		cd / || return 1
+		xz -d -c "$BOOTSTRAP" | \
+		tar xf - || return 1
+		cabal_version=1.22.6.0
+		cabal_install="cabal-install-${cabal_version}"
+		cd "$_builddir"
+		echo 'main = putStrLn "ok"'> test.hs || return 1
+		ghc --make test.hs || return 1
+		./test || return 1
+		rm test test.o test.hi || return 1
+		curl -L "https://www.haskell.org/cabal/release/${cabal-install}/${cabal-install}.tar.gz" | gunzip -c - | tar xf - || return 1
+		cd "cabal-install-${cabal_version}" || return 1
+		export NO_DOCUMENTATION=yep
+		export DEFAULT_CONFIGURE_OPTS="--shared"
+		./bootstrap.sh --sandbox || return 1
+		rm -fr "cabal-install-${cabal_version}" || return 1
+	fi
 	cabal update
-	cabal install --global happy alex
-	# bootstrap ends
+	cabal sandbox init
+	cabal install happy alex
 	cat > mk/build.mk << "FIN"
 SRC_HC_OPTS += -optl-pthread
 SRC_HC_OPTS += -H32m -O0 -fPIC
@@ -75,7 +83,8 @@ package() {
 	cd "$_builddir"
 	make DESTDIR="$pkgdir" install || return 1
 	settings=$(find "$pkgdir" -name settings -type f)
-	# needed until ghc can emite pie assembly
+	# needed until ghc can emit pie assembly
+	# ref https://ghc.haskell.org/trac/ghc/ticket/9007
 	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 	rm -f "$pkgdir"/usr/lib/*.la

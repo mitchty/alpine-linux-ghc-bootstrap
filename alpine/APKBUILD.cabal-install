@@ -1,0 +1,44 @@
+# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
+# Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
+pkgname=cabal-install
+pkgver=1.22.6.0
+pkgrel=0
+pkgdesc="The Haskell Cabal"
+url="http://haskell.org"
+arch="x86_64"
+license="custom"
+depends="gmp zlib"
+depends_dev="bash gmp-dev zlib-dev cabal-install linux-headers"
+makedepends="ghc-dev gzip $depends_dev"
+install=""
+subpackages="$pkgname-doc"
+source="https://www.haskell.org/cabal/release/cabal-install-$pkgver/cabal-install-$pkgver.tar.gz"
+
+_builddir="$srcdir/$pkgname-$pkgver"
+
+build() {
+	cd "$_builddir"
+	export PATH="${PATH}:/usr/local/cross/bin:~/.cabal/bin:$_builddir/.cabal-sandbox/bin"
+	# If we're bootstrapping, we build cabal in a sandbox
+	if [ "$BOOTSTRAP" != "" ]; then
+		export NO_DOCUMENTATION=yep
+		export DEFAULT_CONFIGURE_OPTS="--shared"
+		./bootstrap.sh --sandbox || return 1
+	else
+		cabal update || return 1
+		cabal sandbox init || return 1
+		cabal install --only-dependencies || return 1
+		cabal build --ghc-option=-optl=-static --ghc-option=-optl=-pthread || return 1
+	fi
+}
+
+package() {
+	cd "$_builddir"
+	install -d "$pkgdir/usr/bin" || return 1
+	pkg_cabal=dist/build/cabal/cabal
+	if [ "$BOOTSTRAP" != "" ]; then
+		pkg_cabal=.cabal-sandbox/bin/cabal
+	fi
+	install -m755 "$pkg_cabal" "$pkgdir/usr/bin"
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
