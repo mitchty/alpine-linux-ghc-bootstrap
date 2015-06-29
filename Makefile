@@ -1,6 +1,6 @@
 # First up you'll need Docker working to do all this
 BOOTSTRAPXZ=ghc-x86_64-linux-musl-7.10.1.tar.xz
-BSDIR=bootstrapghc
+BSDIR=bootstrap
 BSNAME=ghcbootstrap
 
 all: bootstrap apk
@@ -14,3 +14,6 @@ alpine/$(BOOTSTRAPXZ):
 
 clean:
 	-rm alpine/$(BOOSTRAPXZ)
+
+apk:
+	cd alpine && docker build -t ghcapk .
