@@ -21,7 +21,7 @@ _builddir="$srcdir/$pkgname-$pkgver"
 
 build() {
 	cd "$_builddir"
-	export PATH="${PATH}:/usr/local/cross/bin:~/.cabal/bin:$_builddir/.cabal-sandbox/bin"
+	export PATH="${PATH}:/usr/local/cross/bin:~/.cabal/bin:$_builddir/cabal-install-$pkgver/.cabal-sandbox/bin"
 	# If we're bootstrapping, we build cabal in a sandbox
 	if [ "$BOOTSTRAP" != "" ]; then
 		export NO_DOCUMENTATION=yep
@@ -40,7 +40,7 @@ package() {
 	install -d "$pkgdir/usr/bin" || return 1
 	pkg_cabal=dist/build/cabal/cabal
 	if [ "$BOOTSTRAP" != "" ]; then
-		pkg_cabal=.cabal-sandbox/bin/cabal
+		pkg_cabal=cabal-install-$pkgver/.cabal-sandbox/bin/cabal
 	fi
 	install -m755 "$pkg_cabal" "$pkgdir/usr/bin"
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"

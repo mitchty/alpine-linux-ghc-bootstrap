@@ -14,6 +14,8 @@ makedepends="bzip2 xz gzip $depends_dev"
 # and cabal-install to compile ghc
 if [ "$BOOTSTRAP" == "" ]; then
 	makedepends="ghc-dev cabal-install $makedepends"
+else
+	makedepends="zlib-dev $makedepends"
 fi
 install=""
 subpackages="$pkgname-dev $pkgname-doc"
@@ -33,11 +35,11 @@ prepare() {
 build() {
 	set -x
 	if [ "$BOOTSTRAP" != "" ]; then
-		export PATH="${PATH}:/usr/local/cross/bin:~/.cabal/bin:$_builddir/.cabal-sandbox/bin"
 		cd / || return 1
 		xz -d -c "$BOOTSTRAP" | \
 		tar xf - || return 1
 		cabal_version=1.22.6.0
+		export PATH="${PATH}:/usr/local/cross/bin:~/.cabal/bin:$_builddir/cabal-install-${cabal_version}/.cabal-sandbox/bin"
 		cd "$_builddir"
 		echo 'main = putStrLn "ok"'> test.hs || return 1
 		ghc --make test.hs || return 1
@@ -50,6 +52,7 @@ build() {
 		./bootstrap.sh --sandbox || return 1
 		rm -fr "cabal-install-${cabal_version}" || return 1
 	fi
+	cd "$_builddir"
 	cabal update
 	cabal sandbox init
 	cabal install happy alex
