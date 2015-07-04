@@ -82,7 +82,7 @@ RUN rm -fr dist && \
     perl -pi -e 's/.*ar command.*/ \(\"ar command\"\,\"ar\"\)\,/' $settings_file && \
     perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\,\"\-nopie\"\)\,/' $settings_file # needed for now
 
-WORKDIR /tmp/bootstrap
-RUN tar -Ipixz -cf /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz $target_stage2_ghc_dir
+#WORKDIR /tmp/bootstrap
+#RUN tar -Ipixz -cf /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz $target_stage2_ghc_dir
 
 CMD ["bash"]

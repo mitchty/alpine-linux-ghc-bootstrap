@@ -1,0 +1,32 @@
+# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
+# Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
+pkgname=ghc-bootstrap
+pkgver=7.10.1
+pkgrel=0
+pkgdesc="The Glasgow Haskell Compiler (bootstrapped)"
+url="http://haskell.org"
+arch="x86_64"
+license="custom"
+depends="docker"
+makedepends="bzip2 xz gzip $depends_dev"
+makedepends="$makedepends"
+install=""
+subpackages="$pkgname-dev $pkgname-doc"
+source="Dockerfile ghc-fpic.patch"
+
+_dockername="$pkgname-$pkgver-$pkgrel"
+
+# Note, this is the bootstrap compiler, built off an ubuntu image.
+#
+# This gets used to build the "proper" ghc later. It will install
+# to /usr like the normal ghc does.
+build() {
+	docker build -t "$_dockername" . || return 1
+}
+
+package() {
+        make DESTDIR="$pkgdir" install || return 1
+	# The output of make DESTDIR=blah install is in /tmp/boostrap
+	docker run -a stdout "$_dockername":latest /bin/tar -xf - /tmp/bootstrap | \
+	tar xf - -C "$pkgdir" || return 1
+}
