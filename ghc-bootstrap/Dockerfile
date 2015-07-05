@@ -69,20 +69,19 @@ RUN patch -p0 ghc-fpic.patch &&  \
     --prefix=/usr && \
     make -j8
 
+ENV unlit_dir $ghc_src/utils/unlit
+ENV settings_file $target_stage2_ghc_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
+
 WORKDIR $unlit_dir
-RUN rm -fr dist && \
-    make GHC=$ghc_src/inplace/bin/ghc-stage1 && \
-    cp $unlit_dir/dist/build/tmp/unlit bootstrap_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver && \
-    make DESTDIR=$bootstrap_dir install
-    cd bootstrap_dir/bin && \
-    $(for x in $(echo *); do y=$(echo $x | sed -e 's|.*musl-||'); ln -s ${x} ${y}; done) && \
+RUN rm -fr dist && make GHC=$ghc_src/inplace/bin/ghc-stage1
+
+WORKDIR $ghc_src
+RUN make install DESTDIR=$bootstrap_dir
+
+WORKDIR $bootstrap_dir/usr/bin
+RUN $(for x in $(echo *); do y=$(echo $x | sed -e 's|.*musl-||'); ln -s ${x} ${y}; done) && \
     perl -pi -e 's/.*C compiler command.*/ \(\"C compiler command\"\, \"gcc\"\)\,/' $settings_file && \
     perl -pi -e 's/.*Haskell CPP command.*/ \(\"Haskell CPP command\"\,\"gcc\"\)\,/' $settings_file && \
     perl -pi -e 's/.*ld command.*/ \(\"ld command\"\,\"ld\"\)\,/' $settings_file && \
     perl -pi -e 's/.*ar command.*/ \(\"ar command\"\,\"ar\"\)\,/' $settings_file && \
     perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\,\"\-nopie\"\)\,/' $settings_file # needed for now
-
-#WORKDIR /tmp/bootstrap
-#RUN tar -Ipixz -cf /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz $target_stage2_ghc_dir
-
-CMD ["bash"]

@@ -28,6 +28,7 @@ build() {
 package() {
 	cd "$_builddir"
 	# The output of make DESTDIR=blah install is in /tmp/bootstrap
-	docker run -a stdout "$_dockername":latest /bin/tar -xf - /tmp/bootstrap | \
+	mkdir -p "$pkgdir" || return 1
+	docker run -a stdout "$_dockername":latest /bin/tar -cf - /tmp/bootstrap | \
 	tar xf - -C "$pkgdir" || return 1
 }
