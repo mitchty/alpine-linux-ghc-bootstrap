@@ -26,6 +26,16 @@ RUN su -l $builduser -c "abuild-keygen -a -i"
 COPY ghc-bootstrap $ghcbootstrap
 
 RUN su -l $builduser -c "cd $ghcbootstrap && abuild checksum"
+
+# NOTE
+# We need to run our abuild -r in alpine, and my host docker is ubuntu
+# SOOOOO, we run the docker in the APKBUILD by pointing it to our
+# ubuntu docker daemon on the docker0 interface
+#
+# This is a total hack, but it works, and this bootstrap build
+# is only needed to build the proper build. It isn't hugely useful otherwise.
+#
+ENV DOCKER_OPTS tcp://172.17.42.1:4243
 RUN su -l $builduser -c "cd $ghcbootstrap && abuild -r"
 
 CMD ["bash"]

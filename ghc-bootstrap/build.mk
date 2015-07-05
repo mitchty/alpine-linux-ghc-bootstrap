@@ -1,0 +1,13 @@
+SRC_HC_OPTS          = -H64m -O0 -fasm -fPIC
+SRC_CC_OPTS          = -O0 -fasm -fPIC
+GhcStage1HcOpts      = -O0 -fasm -fPIC
+GhcStage2HcOpts      = -O0 -fasm -fPIC
+GhcLibHcOpts         = -O0 -fasm -fPIC
+SplitObjs            = NO
+BeConservative       = YES
+HADDOCK_DOCS         = NO
+BUILD_DOCBOOK_HTML   = NO
+BUILD_DOCBOOK_PS     = NO
+BUILD_DOCBOOK_PDF    = NO
+INTEGER_LIBRARY      = integer-simple
+V                    = 0

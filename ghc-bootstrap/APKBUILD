@@ -12,10 +12,9 @@ makedepends="bzip2 xz gzip $depends_dev"
 makedepends="$makedepends"
 install=""
 subpackages=""
-source="Dockerfile ghc-fpic.patch"
+source="Dockerfile ghc-fpic.patch build.mk"
 _builddir="$srcdir/.."
 _dockername="$pkgname-$pkgver-$pkgrel"
-export DOCKER_HOST="tcp://127.0.0.1:4243"
 
 # Note, this is the bootstrap compiler, built off an ubuntu image.
 #
@@ -23,7 +22,6 @@ export DOCKER_HOST="tcp://127.0.0.1:4243"
 # to /usr like the normal ghc does.
 build() {
 	cd "$_builddir"
-	ls -dal *
 	docker build -t "$_dockername" . || return 1
 }
 
