@@ -11,22 +11,25 @@ depends="docker"
 makedepends="bzip2 xz gzip $depends_dev"
 makedepends="$makedepends"
 install=""
-subpackages="$pkgname-dev $pkgname-doc"
+subpackages=""
 source="Dockerfile ghc-fpic.patch"
-
+_builddir="$srcdir/.."
 _dockername="$pkgname-$pkgver-$pkgrel"
+export DOCKER_HOST="tcp://127.0.0.1:4243"
 
 # Note, this is the bootstrap compiler, built off an ubuntu image.
 #
 # This gets used to build the "proper" ghc later. It will install
 # to /usr like the normal ghc does.
 build() {
+	cd "$_builddir"
+	ls -dal *
 	docker build -t "$_dockername" . || return 1
 }
 
 package() {
-        make DESTDIR="$pkgdir" install || return 1
-	# The output of make DESTDIR=blah install is in /tmp/boostrap
+	cd "$_builddir"
+	# The output of make DESTDIR=blah install is in /tmp/bootstrap
 	docker run -a stdout "$_dockername":latest /bin/tar -xf - /tmp/bootstrap | \
 	tar xf - -C "$pkgdir" || return 1
 }
