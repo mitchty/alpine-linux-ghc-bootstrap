@@ -35,7 +35,6 @@ RUN su -l $builduser -c "cd $ghcbootstrap && abuild checksum"
 # This is a total hack, but it works, and this bootstrap build
 # is only needed to build the proper build. It isn't hugely useful otherwise.
 #
-ENV DOCKER_OPTS tcp://172.17.42.1:4243
-RUN su -l $builduser -c "cd $ghcbootstrap && abuild -r"
+RUN su -l $builduser -c "cd $ghcbootstrap && /usr/bin/env DOCKER_HOST='tcp://172.17.42.1:4243' abuild -r"
 
 CMD ["bash"]

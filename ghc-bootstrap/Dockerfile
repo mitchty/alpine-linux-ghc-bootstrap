@@ -25,7 +25,7 @@ ENV cabal_path /opt/cabal/$cabal_ver/bin
 ENV cross_base /opt/cross
 ENV crossmusl_tmp /tmp/musl-cross
 ENV ghc_src_dir $cross_base/src/ghc
-ENV target_stage2_ghc_dir /usr/local/cross
+ENV bootstrap_dir /tmp/bootstrap
 ENV cross_ghc_ver 7.10.1
 ENV PATH $cross_base/$musl_triple/bin:$ghc_path:$happy_path:$alex_path:$cabal_path:$PATH
 
@@ -57,7 +57,7 @@ RUN cd /tmp && mkdir -p $ghc_src_dir && curl -L "https://www.haskell.org/ghc/dis
 ENV LD_LIBRARY_PATH $cross_base/$musl_triple/$musl_triple/lib:$LD_LIBRARY_PATH
 ENV ghc_src $ghc_src_dir/ghc-$cross_ghc_ver
 ENV unlit_dir $ghc_src/utils/unlit
-ENV settings_file /tmp/bootstrap/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
+ENV settings_file $bootstrap_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
 
 WORKDIR $ghc_src
 COPY build.mk $ghc_src/mk/build.mk
@@ -72,9 +72,9 @@ RUN patch -p0 ghc-fpic.patch &&  \
 WORKDIR $unlit_dir
 RUN rm -fr dist && \
     make GHC=$ghc_src/inplace/bin/ghc-stage1 && \
-    cp $unlit_dir/dist/build/tmp/unlit $target_stage2_ghc_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver && \
-    make DESTDIR=/tmp/bootstrap install
-    cd $target_stage2_ghc_dir/bin && \
+    cp $unlit_dir/dist/build/tmp/unlit bootstrap_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver && \
+    make DESTDIR=$bootstrap_dir install
+    cd bootstrap_dir/bin && \
     $(for x in $(echo *); do y=$(echo $x | sed -e 's|.*musl-||'); ln -s ${x} ${y}; done) && \
     perl -pi -e 's/.*C compiler command.*/ \(\"C compiler command\"\, \"gcc\"\)\,/' $settings_file && \
     perl -pi -e 's/.*Haskell CPP command.*/ \(\"Haskell CPP command\"\,\"gcc\"\)\,/' $settings_file && \
