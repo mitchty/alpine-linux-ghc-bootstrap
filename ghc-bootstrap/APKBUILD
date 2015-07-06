@@ -30,5 +30,5 @@ package() {
 	# The output of make DESTDIR=blah install is in /tmp/bootstrap
 	mkdir -p "$pkgdir" || return 1
 	docker run -a stdout "$_dockername":latest /bin/tar -cf - /tmp/bootstrap | \
-	tar xf - -C "$pkgdir" || return 1
+	tar xf - --strip-components=2 -C "$pkgdir" || return 1
 }

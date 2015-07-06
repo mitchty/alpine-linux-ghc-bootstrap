@@ -70,7 +70,7 @@ RUN patch -p0 ghc-fpic.patch &&  \
     make -j8
 
 ENV unlit_dir $ghc_src/utils/unlit
-ENV settings_file $target_stage2_ghc_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
+ENV settings_file $bootstrap_dir/usr/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
 
 WORKDIR $unlit_dir
 RUN rm -fr dist && make GHC=$ghc_src/inplace/bin/ghc-stage1

@@ -37,4 +37,18 @@ RUN su -l $builduser -c "cd $ghcbootstrap && abuild checksum"
 #
 RUN su -l $builduser -c "cd $ghcbootstrap && /usr/bin/env DOCKER_HOST='tcp://172.17.42.1:4243' abuild -r"
 
-CMD ["bash"]
+USER root
+ENV ghc /home/$builduser/aports/testing/ghc
+RUN cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys && \
+   echo /home/$builduser/packages/testing >> /etc/apk/repositories && \
+   apk update && \
+   mkdir -p $ghc && \
+   chown $builduser:abuild $ghc
+#   rm /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
+
+USER $builduser
+COPY ghc $ghc
+WORKDIR $ghc
+RUN abuild checksum && \
+    /usr/bin/env BOOTSTRAP=yes abuild -r
+
