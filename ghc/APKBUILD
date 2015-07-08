@@ -10,8 +10,8 @@ arch="x86_64"
 # https://www.haskell.org/ghc/license
 # https://ghc.haskell.org/trac/ghc/wiki/Licensing
 license="custom"
-depends="bash gcc perl gmp-dev libffi"
-makedepends="bzip2 xz gzip libtool autoconf automake libxslt libffi-dev linux-headers perl ncurses-dev musl-dev zlib-dev $depends_dev"
+depends="bash gcc perl gmp-dev libffi musl-dev"
+makedepends="bzip2 xz gzip libtool autoconf automake libxslt libffi-dev linux-headers perl ncurses-dev zlib-dev $depends_dev"
 install=""
 subpackages="$pkgname-doc"
 _builddir="$srcdir/$pkgname-$pkgver"
