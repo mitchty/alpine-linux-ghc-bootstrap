@@ -1,76 +1,114 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
-# Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>?
+# Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=ghc
+pkgdesc="The Glasgow haskell compiler"
 pkgver=7.10.1
 pkgrel=0
-pkgdesc="The Glasgow haskell compiler"
 url="http://haskell.org"
 arch="x86_64"
+# Note ghc's license is basically bsd3. If you'd like to know more visit:
+# https://www.haskell.org/ghc/license
+# https://ghc.haskell.org/trac/ghc/wiki/Licensing
 license="custom"
-depends="bash gcc perl gmp libffi"
-depends_dev="linux-headers perl ncurses-dev gmp-dev libtool autoconf automake libxslt libffi-dev musl-dev"
-makedepends="bzip2 xz gzip $depends_dev"
-# If we aren't bootstrapping, we require the current ghc
-# # and cabal-install to compile ghc
-if [ "$BOOTSTRAP" == "" ]; then
-        makedepends="ghc-dev cabal-install $makedepends"
-else
-        makedepends="ghc-bootstrap zlib-dev $makedepends"
-fi
+depends="bash gcc perl gmp-dev libffi"
+makedepends="bzip2 xz gzip libtool autoconf automake libxslt libffi-dev linux-headers perl ncurses-dev musl-dev zlib-dev $depends_dev"
 install=""
-subpackages="$pkgname-dev $pkgname-doc"
-source="https://www.haskell.org/ghc/dist/$pkgver/ghc-$pkgver-src.tar.bz2 ghc-fpic.patch"
+subpackages="$pkgname-doc"
+_builddir="$srcdir/$pkgname-$pkgver"
+source="
+	https://www.haskell.org/ghc/dist/$pkgver/ghc-$pkgver-src.tar.bz2
+	ghc-fpic.patch
+	"
+# bootstrap compiler is just a giant tarball, so no need to patch
+# anything
+if [ -z "$BOOTSTRAP" ]; then
+	if [ -z "$VIABOOTSTRAP" ]; then
+		makedepends="ghc cabal-install $makedepends"
+		replaces="ghc-bootstrap"
+	else
+		makedepends="ghc-bootstrap $makedepends"
+	fi
+	prepare() {
+		local i
+		cd "$_builddir"
+		for i in $source; do
+			case $i in
+			*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
+			esac
+		done
+	}
+else
+	# $BOOTSTRAP if set needs to be the tar.gz cross compiler generated off of
+	# a glibc system.
+	pkgname="$pkgname-bootstrap"
+	pkgdesc="$pkgdesc (bootstrapped)"
+	_builddir="$srcdir/ghc-$pkgver"
+	subpackages=""
+fi
 
-#_builddir="$srcdir/$pkgname-$pkgver"
-_builddir="$srcdir/ghc-$pkgver"
-prepare() {
-	local i
+basic_check() {
 	cd "$_builddir"
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-		esac
-	done
+	echo 'main = putStrLn "ok"'> test.hs || return 1
+	ghc --make test.hs || return 1
+	./test || return 1
+	rm test test.o test.hi test.hs || return 1
 }
 
-build() {
+# Bit of repetition here with cabal-install, but its OK
+bootstrap_cabal() {
 	cd "$_builddir"
-	# If bootstrapping we won't have cabal yet.
-        if [ "$BOOTSTRAP" != "" ]; then
-                cabal_version=1.22.6.0
-                export PATH="${PATH}:/usr/local/cross/bin:~/.cabal/bin:$_builddir/cabal-install-${cabal_version}/.cabal-sandbox/bin"
-                cd "$_builddir"
-                echo 'main = putStrLn "ok"'> test.hs || return 1
-                ghc --make test.hs || return 1
-                ./test || return 1
-                rm test test.o test.hi || return 1
-                curl -L "https://www.haskell.org/cabal/release/cabal-install-${cabal_version}/cabal-install-${cabal_version}.tar.gz" | gunzip -c - | tar xf - || return 1
-                cd "cabal-install-${cabal_version}" || return 1
-                export NO_DOCUMENTATION=yep
-                export DEFAULT_CONFIGURE_OPTS="--shared"
-                ./bootstrap.sh --sandbox || return 1
-                rm -fr "cabal-install-${cabal_version}" || return 1
-        fi
-	cabal update
-        cabal sandbox init
-	cabal install happy alex
-	export PATH=$PATH:$(pwd)/.cabal-sandbox/bin
+	cabal_version=1.22.6.0
+	export PATH="${PATH}:$_builddir/cabal-install-${cabal_version}/.cabal-sandbox/bin"
+	curl -L "https://www.haskell.org/cabal/release/cabal-install-${cabal_version}/cabal-install-${cabal_version}.tar.gz" | gunzip -c - | tar xf - || return 1
+	cd "cabal-install-${cabal_version}" || return 1
+	export NO_DOCUMENTATION=yes
+	export DEFAULT_CONFIGURE_OPTS="--shared"
+	./bootstrap.sh --sandbox || return 1
+	rm -fr "cabal-install-${cabal_version}" || return 1
+}
+
+generate_build_mk() {
 	cat > mk/build.mk << "FIN"
 SRC_HC_OPTS          += -optl-pthread
-SRC_HC_OPTS          += -H32m -O0 -fPIC
-SRC_CC_OPTS          += -O0 -fasm -fPIC
-GhcLibHcOpts         += -O0 -fasm -fPIC
+SRC_HC_OPTS          += -H32m -O2 -fPIC
+SRC_CC_OPTS          += -O2 -fPIC
+GhcLibHcOpts         += -O2 -fPIC
 GhcHcOpts            += -Rghc-timing -fPIC
-SplitObjs             = NO
+SplitObjs             = YES
 STRIP                 = :
-GhcRtsCcOpts         += -O0
+GhcRtsCcOpts         += -O2
 GhcRtsWays           += p
-V                     = 0
+V                     = 1
 BeConservative        = YES
 FIN
-	perl boot || return 1
-        mv libraries/integer-gmp integer-gmp.old || return 1
-        ln -s integer-gmp2 libraries/integer-gmp || return 1
+}
+
+sandbox_prerequisites() {
+	cd "$_builddir"
+	export PATH=$PATH:$(pwd)/.cabal-sandbox/bin
+	# Note, will initialize ~/.cabal/config, haven't found a way to override
+	# this behavior as of yet so the build user directory will have some
+	# leftovers after a build. It isn't a big deal however.
+	cabal update
+	cabal sandbox init
+	cabal install happy alex
+}
+
+build_normal() {
+	cd "$_builddir"
+	basic_check
+	type -p cabal
+	if [ $? = 1 ]; then
+		bootstrap_cabal
+	fi
+	build_common
+}
+
+build_common() {
+	sandbox_prerequisites
+	generate_build_mk
+	mv libraries/integer-gmp integer-gmp.old || return 1
+	ln -s integer-gmp2 libraries/integer-gmp || return 1
 	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc \
@@ -78,16 +116,35 @@ FIN
 		--infodir=/usr/share/info \
 		--localstatedir=/var || return 1
 	make -j8 || return 1
-	make || return 1
+}
+
+build() {
+	if [ -z "$BOOTSTRAP" ]; then
+		build_normal
+	fi
+}
+
+package_normal() {
+	cd "$_builddir"
+	make DESTDIR="$pkgdir" install || return 1
+	settings=$(find "$pkgdir" -name settings -type f)
+	# needed until ghc can emit pie assembly
+	# ref https://ghc.haskell.org/trac/ghc/ticket/9007
+	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
+}
+
+package_bootstrap() {
+	# Just extract the cross compiler built via make install DESTDIR on the
+	# glibc distribution.
+	mkdir -p "$pkgdir" || return 1
+	cd "$pkgdir" && xz -d -c "$_builddir/../../$BOOTSTRAP" | tar xf - || return 1
 }
 
 package() {
-	cd "$_builddir"
-	make DESTDIR="$pkgdir" install || return 1
-        settings=$(find "$pkgdir" -name settings -type f)
-        # needed until ghc can emit pie assembly
-        # ref https://ghc.haskell.org/trac/ghc/ticket/9007
-        perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
-	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
-	rm -f "$pkgdir"/usr/lib/*.la
+	if [ -z "$BOOTSTRAP" ]; then
+		package_normal
+	else
+		package_bootstrap
+	fi
 }

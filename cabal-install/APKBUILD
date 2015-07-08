@@ -1,0 +1,39 @@
+# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
+# Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
+pkgname=cabal-install
+pkgver=1.22.6.0
+pkgrel=0
+pkgdesc="The Haskell Cabal"
+url="http://haskell.org"
+arch="x86_64"
+license="custom"
+depends="gmp zlib"
+makedepends="bash gmp-dev zlib-dev linux-headers ghc gzip"
+install=""
+subpackages="$pkgname-doc"
+source="https://www.haskell.org/cabal/release/cabal-install-$pkgver/cabal-install-$pkgver.tar.gz"
+_builddir="$srcdir/$pkgname-$pkgver"
+
+build() {
+set -x
+	cd "$_builddir"
+	export PATH="${PATH}:$_builddir/.cabal-sandbox/bin"
+	export NO_DOCUMENTATION=1
+	export EXTRA_CONFIGURE_OPTS=""
+	./bootstrap.sh --sandbox || return 1
+	# yeah technically we build twice, but its mostly due to
+	# the bootstrap build not being fully static and having a
+	# polluted rpath
+	cabal update || return 1
+	cabal sandbox init || return 1
+	cabal install --only-dependencies || return 1
+	cabal build --ghc-option=-optl=-static --ghc-option=-optl=-pthread || return 1
+}
+
+package() {
+	cd "$_builddir"
+	install -d "$pkgdir/usr/bin" || return 1
+	pkg_cabal="$_builddir/dist/build/cabal/cabal"
+	install -m755 "$pkg_cabal" "$pkgdir/usr/bin" || return 1
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
+}

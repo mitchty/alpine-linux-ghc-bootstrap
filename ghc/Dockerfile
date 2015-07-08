@@ -1,41 +1,105 @@
-FROM alpine:latest
+FROM ubuntu:14.04
 
-ENV username "Mitch Tishmack"
-ENV useremail mitch.tishmack@gmail.com
-ENV builduser build
+# NOTE
+#
+# This Docker file will generate and build a ghc cross compiler for x86_64
+# with musl libc as the libc in use.
+#
+# Future enhancements to this build process for i386/arm are in order. Consider
+# that a TODO item.
+#
+# The final result is a tar.gz file in /tmp with the output of:
+# make install DESTDIR=/usr
+#
+# Also note, this is set to use make -j8 to speed things along. Every run
+# of this container will yield a different result unfortunately.
+#
+RUN \
+  sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
+  apt-get update && \
+  apt-get -y upgrade && \
+  apt-get install -y build-essential && \
+  apt-get install -y software-properties-common && \
+  apt-get install -y byobu curl git htop man unzip vim wget && \
+  rm -rf /var/lib/apt/lists/*
 
-# add our temporary internal http repo with our bootstrap ghc/cabal-install
-RUN echo "https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10" >> /etc/apk/repositories
+ENV HOME /root
 
-COPY mitch.tishmack@gmail.com-55881c97.rsa.pub /etc/apk/keys/mitch.tishmack@gmail.com-55881c97.rsa.pub
+WORKDIR /root
 
-RUN apk update && apk add git abuild
+ENV bootstrap_ghc_ver 7.10.1
+ENV happy_ver 1.19.5
+ENV alex_ver 3.1.4
+ENV cabal_ver 1.20
+ENV musl_triple x86_64-linux-musl
+ENV ghc_path /opt/ghc/$bootstrap_ghc_ver/bin
+ENV happy_path /opt/happy/$happy_ver/bin
+ENV alex_path /opt/alex/$alex_ver/bin
+ENV cabal_path /opt/cabal/$cabal_ver/bin
+ENV cross_base /opt/cross
+ENV crossmusl_tmp /tmp/musl-cross
+ENV ghc_src_dir $cross_base/src/ghc
+ENV bootstrap_dir /tmp/bootstrap
+ENV cross_ghc_ver 7.10.1
+ENV PATH $cross_base/$musl_triple/bin:$ghc_path:$happy_path:$alex_path:$cabal_path:$PATH
 
-RUN echo "PACKAGER='$username <$useremail>'" >> /etc/abuild.conf
+RUN \
+    apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository -y ppa:hvr/ghc && \
+    apt-get update && \
+    apt-get install -y cabal-install-$cabal_ver ghc-$bootstrap_ghc_ver happy-$happy_ver alex-$alex_ver && \
+    apt-get install -y git mercurial g++ gcc git autoconf ncurses-dev automake libtool make python bzip2 pixz
 
-# setup build user and clone alpine ports
-RUN adduser -D $builduser && \
-   addgroup $builduser abuild && \
-   mkdir -p /var/cache/distfiles && \
-   chgrp abuild /var/cache/distfiles && \
-   chmod g+w /var/cache/distfiles && \
-   echo 'mitch  ALL=(ALL) ALL' > /etc/sudoers && \
-   su -l $builduser -c "git config --global user.name '$username'" && \
-   su -l $builduser -c "git config --global user.email '$useremail'" && \
-   su -l $builduser -c "git clone git://dev.alpinelinux.org/aports" && \
-   su -l $builduser -c "mkdir aports/testing/ghc"
+RUN hg clone https://bitbucket.org/GregorR/musl-cross $crossmusl_tmp && \
+    echo "GCC_BUILTIN_PREREQS=yes" >> $crossmusl_tmp/config.sh && \
+    echo "ARCH=x86_64" >> $crossmusl_tmp/config.sh && \
+    cd $crossmusl_tmp && ./build.sh && \
+    cd / && rm -fr $crossmusl_tmp
 
-# need to run keygen or abuild whinges
-RUN su -l $builduser -c "abuild-keygen -a -i"
-COPY APKBUILD.ghc /home/build/aports/testing/ghc/APKBUILD
+RUN cd /tmp && curl -L http://ftp.gnu.org/gnu/ncurses/ncurses-5.9.tar.gz | \
+    gunzip -c - | tar xf -
 
-RUN su -l $builduser -c "cd ~/aports/testing/ghc && abuild checksum"
-RUN su -l $builduser -c "cd ~/aports/testing/ghc && abuild -r"
+RUN perl -pi -e 's/linux\-uclibc/linux\-musl/g' /tmp/ncurses*/config.sub
+RUN cd /tmp/ncurses-5.9 && ./configure --target=$musl_triple --with-gcc=$musl_triple-gcc --with-shared --host=$musl_triple --with-build-cpp=$musl_triple-g++ --prefix=$cross_base/$musl_triple/$musl_triple && \
+    make -j8 && make && \
+    make install && \
+    cd $cross_base/$musl_triple/$musl_triple/include/ncurses && cp *.h ..
 
-RUN su -l $builduser -c "mkdir aports/testing/cabal-install"
-COPY APKBUILD.cabal-install /home/build/aports/testing/cabal-install/APKBUILD
-RUN su -l $builduser -c "cd ~/aports/testing/cabal-install && abuild checksum"
-RUN rm /home/build/packages/testing/x86_64/APKINDEX.tar.gz
-RUN su -l $builduser -c "cd ~/aports/testing/cabal-install && abuild -r"
+RUN cd /tmp && mkdir -p $ghc_src_dir && curl -L "https://www.haskell.org/ghc/dist/7.10.1/ghc-7.10.1-src.tar.bz2" | bunzip2 -c - | tar xf - -C $ghc_src_dir
 
-CMD ["bash"]
+ENV LD_LIBRARY_PATH $cross_base/$musl_triple/$musl_triple/lib:$LD_LIBRARY_PATH
+ENV ghc_src $ghc_src_dir/ghc-$cross_ghc_ver
+ENV unlit_dir $ghc_src/utils/unlit
+ENV settings_file $bootstrap_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
+
+WORKDIR $ghc_src
+COPY build.mk $ghc_src/mk/build.mk
+COPY ghc-fpic.patch $ghc_src/ghc-fpic.patch
+RUN patch -p0 ghc-fpic.patch &&  \
+    ./configure --with-gcc=$musl_triple-gcc \
+    --target=$musl_triple \
+    --enable-unregisterised \
+    --prefix=/usr && \
+    make -j8
+
+ENV unlit_dir $ghc_src/utils/unlit
+ENV settings_file $bootstrap_dir/usr/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
+
+WORKDIR $unlit_dir
+RUN rm -fr dist && make GHC=$ghc_src/inplace/bin/ghc-stage1
+
+WORKDIR $ghc_src
+RUN make install DESTDIR=$bootstrap_dir
+
+WORKDIR $bootstrap_dir/usr/bin
+RUN $(for x in $(echo *); do y=$(echo $x | sed -e 's|.*musl-||'); ln -s ${x} ${y}; done) && \
+    perl -pi -e 's/.*C compiler command.*/ \(\"C compiler command\"\, \"gcc\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*Haskell CPP command.*/ \(\"Haskell CPP command\"\,\"gcc\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*ld command.*/ \(\"ld command\"\,\"ld\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*ar command.*/ \(\"ar command\"\,\"ar\"\)\,/' $settings_file && \
+    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\,\"\-nopie\"\)\,/' $settings_file
+
+WORKDIR $bootstrap_dir
+RUN tar -Ipixz -cf /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz . && \
+    rm -fr $bootstrap_dir

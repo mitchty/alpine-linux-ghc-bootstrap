@@ -1,5 +1,19 @@
 FROM ubuntu:14.04
 
+# NOTE
+#
+# This Docker file will generate and build a ghc cross compiler for x86_64
+# with musl libc as the libc in use.
+#
+# Future enhancements to this build process for i386/arm are in order. Consider
+# that a TODO item.
+#
+# The final result is a tar.gz file in /tmp with the output of:
+# make install DESTDIR=/usr
+#
+# Also note, this is set to use make -j8 to speed things along. Every run
+# of this container will yield a different result unfortunately.
+#
 RUN \
   sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
   apt-get update && \
@@ -84,4 +98,8 @@ RUN $(for x in $(echo *); do y=$(echo $x | sed -e 's|.*musl-||'); ln -s ${x} ${y
     perl -pi -e 's/.*Haskell CPP command.*/ \(\"Haskell CPP command\"\,\"gcc\"\)\,/' $settings_file && \
     perl -pi -e 's/.*ld command.*/ \(\"ld command\"\,\"ld\"\)\,/' $settings_file && \
     perl -pi -e 's/.*ar command.*/ \(\"ar command\"\,\"ar\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\,\"\-nopie\"\)\,/' $settings_file # needed for now
+    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\,\"\-nopie\"\)\,/' $settings_file
+
+WORKDIR $bootstrap_dir
+RUN tar -Ipixz -cf /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz . && \
+    rm -fr $bootstrap_dir
