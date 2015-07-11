@@ -25,6 +25,8 @@ RUN git config --global user.name '$username' && \
     mkdir -p $ghc && \
     abuild-keygen -a -i
 
+RUN perl -pi -e "s/JOBS[=]2/JOBS\=8/" /etc/abuild.conf
+
 WORKDIR $ghc
 USER root
 RUN cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys && \
