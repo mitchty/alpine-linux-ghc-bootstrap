@@ -10,13 +10,10 @@ all: bootstrap apk
 bootstrap: $(PKGXZ)
 
 $(PKGXZ):
-	cd $(BSDIR) && docker build -t $(BSNAME) .
-	# never use -i or -t, never get the same file with those options
-	docker run -a stdout $(BSNAME):latest /bin/cat /tmp/$(BOOTSTRAPXZ) > $(PKGXZ)
+	cd $(BSDIR) && ./bootstrap.sh
 
 clean:
 	-rm $(PKGXZ)
 
 apk:
 	docker build -t $(ALPINENAME) .
-#	docker run -a stdout $(ALPINENAME):latest cat /tmp/apk.tar | tar xvf -

@@ -15,7 +15,6 @@ source="https://www.haskell.org/cabal/release/cabal-install-$pkgver/cabal-instal
 _builddir="$srcdir/$pkgname-$pkgver"
 
 build() {
-set -x
 	cd "$_builddir"
 	export PATH="${PATH}:$_builddir/.cabal-sandbox/bin"
 	export NO_DOCUMENTATION=1
