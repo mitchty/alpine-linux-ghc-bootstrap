@@ -27,11 +27,6 @@ if [ -z "$BOOTSTRAP" ]; then
 		replaces="ghc-bootstrap"
 	else
 		makedepends="ghc-bootstrap $makedepends"
-		if [ -f "$BOOTSTRAP" ]; then
-			source="$source $BOOTSTRAP"
-		else
-			source="$source http://someurlwiththebootstrapfile"
-		fi
 	fi
 	prepare() {
 		local i
@@ -47,8 +42,9 @@ else
 	# a glibc system.
 	pkgname="$pkgname-bootstrap"
 	pkgdesc="$pkgdesc (bootstrapped)"
-	_builddir="$srcdir/ghc-$pkgver"
+	_builddir="$srcdir"
 	subpackages=""
+	source="$BOOTSTRAP"
 fi
 
 basic_check() {
@@ -140,17 +136,12 @@ package_normal() {
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }
 
-package_bootstrap() {
-	# Just extract the cross compiler built via make install DESTDIR
-	# from the docker image
-	mkdir -p "$pkgdir" || return 1
-	cd "$pkgdir" && xz -d -c "$_builddir/../../$BOOTSTRAP" | tar xf - || return 1
-}
-
 package() {
 	if [ -z "$BOOTSTRAP" ]; then
 		package_normal
 	else
-		package_bootstrap
+		cd "$_builddir"
+		mkdir -p "$pkgdir" || return 1
+		mv usr "$pkgdir" || return 1
 	fi
 }

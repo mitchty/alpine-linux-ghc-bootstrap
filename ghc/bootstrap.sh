@@ -11,4 +11,4 @@ set -e
 # for a normal build with --prefix=/usr
 docker build -t "${bootstrap_docker}" .
 docker run -a stdout "${bootstrap_docker}:latest" /bin/cat "/tmp/${bootstrap_xz}" > "${dir}/${bootstrap_xz}"
-docker rmi -t "${bootstrap_docker}"
+docker rmi "${bootstrap_docker}"
