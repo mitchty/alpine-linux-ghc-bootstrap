@@ -5,7 +5,7 @@ BSNAME=alpine-ghc-bootstrap
 ALPINENAME=ghcapk
 PKGXZ=$(BSDIR)/$(BOOTSTRAPXZ)
 
-all: bootstrap apk
+all: bootstrap apk test
 
 bootstrap: $(PKGXZ)
 
@@ -17,3 +17,6 @@ clean:
 
 apk:
 	docker build -t $(ALPINENAME) .
+
+test:
+	cd test && docker build .
