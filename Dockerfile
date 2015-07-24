@@ -1,4 +1,4 @@
-FROM alpine:3.1
+FROM alpine:3.2
 
 ENV username "Mitch Tishmack"
 ENV useremail mitch.tishmack@gmail.com
@@ -36,8 +36,8 @@ RUN cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys &
 
 USER $builduser
 COPY ghc $ghc
-RUN /usr/bin/env BOOTSTRAP=http://bsd.lan:8000/ghc-x86_64-linux-musl-7.10.1.tar.xz abuild checksum && \
-    /usr/bin/env BOOTSTRAP=http://bsd.lan:8000/ghc-x86_64-linux-musl-7.10.1.tar.xz abuild -r
+RUN /usr/bin/env BOOTSTRAP=http://bsd.lan:8000/ghc-x86_64-linux-musl-7.10.2.tar.xz abuild checksum && \
+    /usr/bin/env BOOTSTRAP=http://bsd.lan:8000/ghc-x86_64-linux-musl-7.10.2.tar.xz abuild -r
 
 USER root
 RUN apk update

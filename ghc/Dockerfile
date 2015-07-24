@@ -27,7 +27,7 @@ ENV HOME /root
 
 WORKDIR /root
 
-ENV bootstrap_ghc_ver 7.10.1
+ENV bootstrap_ghc_ver 7.10.2
 ENV happy_ver 1.19.5
 ENV alex_ver 3.1.4
 ENV cabal_ver 1.20
@@ -40,7 +40,7 @@ ENV cross_base /opt/cross
 ENV crossmusl_tmp /tmp/musl-cross
 ENV ghc_src_dir $cross_base/src/ghc
 ENV bootstrap_dir /tmp/bootstrap
-ENV cross_ghc_ver 7.10.1
+ENV cross_ghc_ver 7.10.2
 ENV PATH $cross_base/$musl_triple/bin:$ghc_path:$happy_path:$alex_path:$cabal_path:$PATH
 
 RUN \
@@ -66,7 +66,7 @@ RUN cd /tmp/ncurses-5.9 && ./configure --target=$musl_triple --with-gcc=$musl_tr
     make install && \
     cd $cross_base/$musl_triple/$musl_triple/include/ncurses && cp *.h ..
 
-RUN cd /tmp && mkdir -p $ghc_src_dir && curl -L "https://www.haskell.org/ghc/dist/7.10.1/ghc-7.10.1-src.tar.bz2" | bunzip2 -c - | tar xf - -C $ghc_src_dir
+RUN cd /tmp && mkdir -p $ghc_src_dir && curl -L "https://www.haskell.org/ghc/dist/7.10.2/ghc-7.10.2-src.tar.bz2" | bunzip2 -c - | tar xf - -C $ghc_src_dir
 
 ENV LD_LIBRARY_PATH $cross_base/$musl_triple/$musl_triple/lib:$LD_LIBRARY_PATH
 ENV ghc_src $ghc_src_dir/ghc-$cross_ghc_ver
@@ -75,9 +75,7 @@ ENV settings_file $bootstrap_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver
 
 WORKDIR $ghc_src
 COPY build.mk $ghc_src/mk/build.mk
-COPY ghc-fpic.patch $ghc_src/ghc-fpic.patch
-RUN patch -p0 ghc-fpic.patch &&  \
-    ./configure --with-gcc=$musl_triple-gcc \
+RUN ./configure --with-gcc=$musl_triple-gcc \
     --target=$musl_triple \
     --enable-unregisterised \
     --prefix=/usr && \

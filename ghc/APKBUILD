@@ -2,7 +2,7 @@
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=ghc
 pkgdesc="The Glasgow haskell compiler"
-pkgver=7.10.1
+pkgver=7.10.2
 pkgrel=0
 url="http://haskell.org"
 arch="x86_64"
@@ -17,14 +17,12 @@ subpackages="$pkgname-doc"
 _builddir="$srcdir/$pkgname-$pkgver"
 source="
 	https://www.haskell.org/ghc/dist/$pkgver/ghc-$pkgver-src.tar.bz2
-	ghc-fpic.patch
 	"
 # bootstrap compiler is just a giant tarball, so no need to patch
 # anything
 if [ -z "$BOOTSTRAP" ]; then
 	if [ -z "$VIABOOTSTRAP" ]; then
 		makedepends="ghc cabal-install $makedepends"
-		replaces="ghc-bootstrap"
 	else
 		makedepends="ghc-bootstrap $makedepends"
 	fi
@@ -145,9 +143,3 @@ package() {
 		mv usr "$pkgdir" || return 1
 	fi
 }
-md5sums="3a18fbf8b79035b7ea2613aa9196e421  ghc-7.10.1-src.tar.bz2
-ce80cec74f61ca37eee65c316f031882  ghc-fpic.patch"
-sha256sums="bfe3ea85417a1a40fb76ac15b2f9f3f567e6c3dac58a07a5714ed5511631ed6f  ghc-7.10.1-src.tar.bz2
-ffd67104eaaf0e8cdb3770fe134cae8b3a98377352d9dca7e79c31fc7d8dde15  ghc-fpic.patch"
-sha512sums="169e27cc371a748f636772b5385f68278511a401ba025af63f64bd88362eb5e44b06ae44e9a9bf4ad37f9319dac7c7e799b58a690a405d50a49000e2514dc228  ghc-7.10.1-src.tar.bz2
-48640bef64636d17d35b9deff6059a725abe3d6081396f3542d0b3f9dbbf82d09a6ffcf19274f0f3c4ff6b17e2854ddadc79c87c24bd67ce28b6dbdd2e8c8645  ghc-fpic.patch"

@@ -39,16 +39,9 @@ RUN cabal install mtl network-uri parsec random stm text zlib network \
     shakespeare-css uuid xml-conduit spock \
     zlib-conduit acid-state clock multimap \
     network-transport-tcp tasty tasty-hunit safecopy \
-    sodium unbounded-delays shellcheck aeson optparse-applicative inline-c
+    sodium unbounded-delays shellcheck aeson optparse-applicative inline-c stack
 
-# Ok this is messed up but cabal install stack doesn't work, its either a bug in
-# cabal or ghc, i'm not 100% yet tbh. But if/when it starts to work make this fail
-RUN cabal install stack || /bin/true
-
-# It works, but... need to work around a rather interesting linker issue
-RUN cabal get stack-0.1.2.0 && \
-    cd stack-0.1.2.0 && cabal build || /bin/true && \
-    cabal build || /bin/true && \
-    cabal install
-
+RUN echo "main = putStrLn \"ok\"" > /tmp/test.hs
+ENV PATH $HOME/.cabal/bin:$PATH
+WORKDIR /tmp"
 CMD ["bash"]
