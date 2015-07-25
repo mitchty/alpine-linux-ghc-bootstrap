@@ -143,3 +143,6 @@ package() {
 		mv usr "$pkgdir" || return 1
 	fi
 }
+md5sums="b6094e56e940881deb5be5d3bd5776c4  ghc-7.10.2-src.tar.bz2"
+sha256sums="fe8257ad38984d542cb60c0aabf4e88767c6c1cb4eeaf69eb5acfaab5d6d97a9  ghc-7.10.2-src.tar.bz2"
+sha512sums="7977a5831f73f04d7127696a816690e2d9ebd7afccec15862d3dc75dd735c16db10d076f5e11af9149c8c043586bbe378b3c14f8b0f1be082765c350f06afa74  ghc-7.10.2-src.tar.bz2"

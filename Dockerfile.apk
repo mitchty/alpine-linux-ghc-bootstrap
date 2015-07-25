@@ -1,0 +1,21 @@
+FROM ghcapk:latest
+
+USER root
+RUN apk update && apk add git abuild 
+
+RUN echo "PACKAGER='$username <$useremail>'" >> /etc/abuild.conf
+
+COPY mitch.tishmack@gmail.com-55881c97.rsa /tmp/mitch.tishmack@gmail.com-55881c97.rsa
+COPY mitch.tishmack@gmail.com-55881c97.rsa.pub /tmp/mitch.tishmack@gmail.com-55881c97.rsa.pub
+
+RUN chmod 444 /tmp/mitch.tishmack@gmail.com-55881c97.rsa /tmp/mitch.tishmack@gmail.com-55881c97.rsa.pub
+
+USER build
+WORKDIR $HOME
+
+RUN rm $HOME/packages/testing/x86_64/APKINDEX.tar.gz && \
+    apk index -o $HOME/packages/testing/x86_64/APKINDEX.unsigned.tar.gz $HOME/packages/testing/x86_64/cabal-install-1.22.6.0-r1.apk $HOME/packages/testing/x86_64/cabal-install-doc-1.22.6.0-r1.apk $HOME/packages/testing/x86_64/ghc-7.10.2-r0.apk $HOME/packages/testing/x86_64/ghc-bootstrap-7.10.2-r0.apk $HOME/packages/testing/x86_64/ghc-doc-7.10.2-r0.apk  && \
+    cp $HOME/packages/testing/x86_64/APKINDEX.unsigned.tar.gz $HOME/packages/testing/x86_64/APKINDEX.tar.gz
+USER root
+RUN abuild-sign -k /tmp/mitch.tishmack@gmail.com-55881c97.rsa /home/build/packages/testing/x86_64/APKINDEX.tar.gz
+    
