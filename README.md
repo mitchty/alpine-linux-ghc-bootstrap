@@ -10,7 +10,7 @@ docker run --rm -i -t mitchty/alpine-ghc:latest
 
 Which is basically just the below Dockerfile. Also note to use on non docker one would just add the keys listed and the repository listed.
 
-Use is pretty simple, just add the proper line into */etc/apk/repositories*, and add my signing key to */etc/apk/keys* and *apk update && apk add ghc-dev cabal-install*.
+Use is pretty simple, just add the proper line into */etc/apk/repositories*, and add my signing key to */etc/apk/keys* and *apk update && apk add ghc cabal-install*.
 
 Abbreviated short version, note the pub key is also in examples.
 
