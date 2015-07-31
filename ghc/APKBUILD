@@ -3,7 +3,7 @@
 pkgname=ghc
 pkgdesc="The Glasgow haskell compiler"
 pkgver=7.10.2
-pkgrel=0
+pkgrel=1
 url="http://haskell.org"
 arch="x86_64"
 # Note ghc's license is basically bsd3. If you'd like to know more visit:
@@ -143,6 +143,6 @@ package() {
 		mv usr "$pkgdir" || return 1
 	fi
 }
-md5sums="b6094e56e940881deb5be5d3bd5776c4  ghc-7.10.2-src.tar.bz2"
-sha256sums="fe8257ad38984d542cb60c0aabf4e88767c6c1cb4eeaf69eb5acfaab5d6d97a9  ghc-7.10.2-src.tar.bz2"
-sha512sums="7977a5831f73f04d7127696a816690e2d9ebd7afccec15862d3dc75dd735c16db10d076f5e11af9149c8c043586bbe378b3c14f8b0f1be082765c350f06afa74  ghc-7.10.2-src.tar.bz2"
+md5sums="d4e1be9ab132f4afe9ac517c15d36fde  ghc-7.10.2-src.tar.bz2"
+sha256sums="8d6b58ca000479432411cf0adcc443953ef089e04bcbba8d62d1d283446b2271  ghc-7.10.2-src.tar.bz2"
+sha512sums="ba130597d68013590f1fdf1ee52efed081d6d064826ec1b5e037cad1ad29720fa58edf1728c7342cd285f8aeb9d74143aa51ec88e5a3f4af480a9e77e23d45d6  ghc-7.10.2-src.tar.bz2"

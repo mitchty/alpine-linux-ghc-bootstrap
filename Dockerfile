@@ -36,8 +36,10 @@ RUN cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys &
 
 USER $builduser
 COPY ghc $ghc
-RUN /usr/bin/env BOOTSTRAP=https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10/ghc-x86_64-linux-musl-7.10.2.tar.xz abuild checksum && \
-    /usr/bin/env BOOTSTRAP=https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10/ghc-x86_64-linux-musl-7.10.2.tar.xz abuild -r
+#ENV bs_url http://bsd.lan:8000/ghc-x86_64-linux-musl-7.10.2.tar.xz
+ENV bs_url https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10/ghc-x86_64-linux-musl-7.10.2.tar.xz
+RUN /usr/bin/env BOOTSTRAP=$bs_url abuild checksum && \
+    /usr/bin/env BOOTSTRAP=$bs_url abuild -r
 
 USER root
 RUN apk update

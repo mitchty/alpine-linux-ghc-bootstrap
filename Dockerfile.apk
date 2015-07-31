@@ -1,21 +1,21 @@
 FROM ghcapk:latest
 
+ENV username "Mitch Tishmack"
+ENV useremail mitch.tishmack@gmail.com
+ENV builduser build
+
 USER root
-RUN apk update && apk add git abuild 
-
-RUN echo "PACKAGER='$username <$useremail>'" >> /etc/abuild.conf
-
-COPY mitch.tishmack@gmail.com-55881c97.rsa /tmp/mitch.tishmack@gmail.com-55881c97.rsa
-COPY mitch.tishmack@gmail.com-55881c97.rsa.pub /tmp/mitch.tishmack@gmail.com-55881c97.rsa.pub
-
-RUN chmod 444 /tmp/mitch.tishmack@gmail.com-55881c97.rsa /tmp/mitch.tishmack@gmail.com-55881c97.rsa.pub
+RUN apk update && apk add git abuild && rm /home/$builduser/.abuild/* && \
+    echo "PACKAGER='$username <$useremail>'" >> /etc/abuild.conf
 
 USER build
 WORKDIR $HOME
+COPY alpine-keys.tar /home/$builduser/.abuild/alpine-keys.tar
+RUN cd /home/$builduser/.abuild && tar xvf alpine-keys.tar
+RUN rm /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz && \
+    apk index -o /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz /home/$builduser/packages/testing/x86_64/*.apk && \
+    cp /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz && \
+    abuild-sign -k /home/$builduser/.abuild/*.rsa /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
 
-RUN rm $HOME/packages/testing/x86_64/APKINDEX.tar.gz && \
-    apk index -o $HOME/packages/testing/x86_64/APKINDEX.unsigned.tar.gz $HOME/packages/testing/x86_64/cabal-install-1.22.6.0-r1.apk $HOME/packages/testing/x86_64/cabal-install-doc-1.22.6.0-r1.apk $HOME/packages/testing/x86_64/ghc-7.10.2-r0.apk $HOME/packages/testing/x86_64/ghc-bootstrap-7.10.2-r0.apk $HOME/packages/testing/x86_64/ghc-doc-7.10.2-r0.apk  && \
-    cp $HOME/packages/testing/x86_64/APKINDEX.unsigned.tar.gz $HOME/packages/testing/x86_64/APKINDEX.tar.gz
 USER root
-RUN abuild-sign -k /tmp/mitch.tishmack@gmail.com-55881c97.rsa /home/build/packages/testing/x86_64/APKINDEX.tar.gz
-    
+RUN cp /home/$builduser/.abuild/*.pub /etc/apk/keys && chmod o+r /etc/apk/keys/*.pub

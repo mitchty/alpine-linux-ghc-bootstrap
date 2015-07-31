@@ -17,7 +17,6 @@ FROM ubuntu:14.04
 RUN \
   sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
   apt-get update && \
-  apt-get -y upgrade && \
   apt-get install -y build-essential && \
   apt-get install -y software-properties-common && \
   apt-get install -y byobu curl git htop man unzip vim wget && \
@@ -57,15 +56,6 @@ RUN hg clone https://bitbucket.org/GregorR/musl-cross $crossmusl_tmp && \
     cd $crossmusl_tmp && ./build.sh && \
     cd / && rm -fr $crossmusl_tmp
 
-RUN cd /tmp && curl -L http://ftp.gnu.org/gnu/ncurses/ncurses-5.9.tar.gz | \
-    gunzip -c - | tar xf -
-
-RUN perl -pi -e 's/linux\-uclibc/linux\-musl/g' /tmp/ncurses*/config.sub
-RUN cd /tmp/ncurses-5.9 && ./configure --target=$musl_triple --with-gcc=$musl_triple-gcc --with-shared --host=$musl_triple --with-build-cpp=$musl_triple-g++ --prefix=$cross_base/$musl_triple/$musl_triple && \
-    make -j8 && make && \
-    make install && \
-    cd $cross_base/$musl_triple/$musl_triple/include/ncurses && cp *.h ..
-
 RUN cd /tmp && mkdir -p $ghc_src_dir && curl -L "https://www.haskell.org/ghc/dist/7.10.2/ghc-7.10.2-src.tar.bz2" | bunzip2 -c - | tar xf - -C $ghc_src_dir
 
 ENV LD_LIBRARY_PATH $cross_base/$musl_triple/$musl_triple/lib:$LD_LIBRARY_PATH
@@ -78,8 +68,13 @@ COPY build.mk $ghc_src/mk/build.mk
 RUN ./configure --with-gcc=$musl_triple-gcc \
     --target=$musl_triple \
     --enable-unregisterised \
-    --prefix=/usr && \
-    make -j8
+    --prefix=/usr
+RUN perl -pi -e "s/terminfo//" ghc.mk && \
+    perl -pi -e "s/terminfo//" utils/ghc-pkg/ghc-pkg.cabal && \
+    perl -pi -e "s/unix,/unix/" utils/ghc-pkg/ghc-pkg.cabal
+ # && \
+#    perl -pi -e 'print "\n\#define BOOTSTRAPPING\n" if $. == 1' utils/ghc-pkg/Main.hs
+RUN make -j8
 
 ENV unlit_dir $ghc_src/utils/unlit
 ENV settings_file $bootstrap_dir/usr/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
