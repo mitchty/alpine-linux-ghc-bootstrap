@@ -50,13 +50,21 @@ RUN \
     apt-get install -y cabal-install-$cabal_ver ghc-$bootstrap_ghc_ver happy-$happy_ver alex-$alex_ver && \
     apt-get install -y git mercurial g++ gcc git autoconf ncurses-dev automake libtool make python bzip2 pixz
 
-RUN hg clone https://bitbucket.org/GregorR/musl-cross $crossmusl_tmp && \
+RUN hg clone -r d72695b https://bitbucket.org/GregorR/musl-cross $crossmusl_tmp && \
     echo "GCC_BUILTIN_PREREQS=yes" >> $crossmusl_tmp/config.sh && \
     echo "ARCH=x86_64" >> $crossmusl_tmp/config.sh && \
     cd $crossmusl_tmp && ./build.sh && \
     cd / && rm -fr $crossmusl_tmp
 
 RUN cd /tmp && mkdir -p $ghc_src_dir && curl -L "https://www.haskell.org/ghc/dist/7.10.2/ghc-7.10.2-src.tar.bz2" | bunzip2 -c - | tar xf - -C $ghc_src_dir
+
+RUN cd /tmp && curl -L http://ftp.gnu.org/gnu/ncurses/ncurses-5.9.tar.gz | \
+    gunzip -c - | tar xf -
+RUN perl -pi -e 's/linux\-uclibc/linux\-musl/g' /tmp/ncurses*/config.sub
+RUN cd /tmp/ncurses-5.9 && ./configure --target=$musl_triple --with-gcc=$musl_triple-gcc --with-shared --host=$musl_triple --with-build-cpp=$musl_triple-g++ --prefix=$cross_base/$musl_triple/$musl_triple && \
+    make -j8 && make && \
+    make install && \
+    cd $cross_base/$musl_triple/$musl_triple/include/ncurses && cp *.h ..
 
 ENV LD_LIBRARY_PATH $cross_base/$musl_triple/$musl_triple/lib:$LD_LIBRARY_PATH
 ENV ghc_src $ghc_src_dir/ghc-$cross_ghc_ver
@@ -69,11 +77,6 @@ RUN ./configure --with-gcc=$musl_triple-gcc \
     --target=$musl_triple \
     --enable-unregisterised \
     --prefix=/usr
-RUN perl -pi -e "s/terminfo//" ghc.mk && \
-    perl -pi -e "s/terminfo//" utils/ghc-pkg/ghc-pkg.cabal && \
-    perl -pi -e "s/unix,/unix/" utils/ghc-pkg/ghc-pkg.cabal
- # && \
-#    perl -pi -e 'print "\n\#define BOOTSTRAPPING\n" if $. == 1' utils/ghc-pkg/Main.hs
 RUN make -j8
 
 ENV unlit_dir $ghc_src/utils/unlit
