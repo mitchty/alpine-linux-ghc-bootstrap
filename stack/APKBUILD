@@ -1,0 +1,40 @@
+# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
+# Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
+pkgname=stack
+pkgver=0.1.2.2
+pkgrel=0
+pkgdesc="Stack"
+url="https://github.com/commercialhaskell/stack"
+arch="x86_64"
+license="bsd3"
+depends="ghc zlib"
+makedepends="bash gmp-dev zlib-dev linux-headers ghc gzip cabal-install musl-dev chrpath"
+install=""
+subpackages="$pkgname-doc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/commercialhaskell/stack/archive/v$pkgver.tar.gz"
+_builddir="$srcdir/$pkgname-$pkgver"
+
+build() {
+	cd "$_builddir"
+	export PATH="${PATH}:$_builddir/.cabal-sandbox/bin"
+	export OHOME="$HOME"
+	export HOME="$_builddir"
+	cabal update || return 1
+	cabal sandbox init || return 1
+	cabal install --only-dependencies || return 1
+#	cabal build --ghc-option=-optl=-static --ghc-option=-optl=-pthread || return 1
+	cabal install -v3 || return 1
+	export HOME="$OHOME"
+}
+
+package() {
+	cd "$_builddir"
+	install -d "$pkgdir/usr/bin" || return 1
+	pkg_stack="$_builddir/.cabal-sandbox/bin/$pkgname"
+	chrpath -r '$ORIGIN/../lib64' "$pkg_stack" || return 1
+	install -m755 "$pkg_stack" "$pkgdir/usr/bin" || return 1
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
+}
+md5sums="c9c5978245010953cfa86664a2dba4c1  stack-0.1.2.2.tar.gz"
+sha256sums="636af24cf50f8be44ed005804e93d04f7e7c3b59ced63184d642dbe1e1c90b3d  stack-0.1.2.2.tar.gz"
+sha512sums="818fa20fdafba1678afb52682a774f0edbfaed2080c2e4be2ece188b74e49d741e440c99080ce8a19b087ffd5e6e71269dae9f77a22f29d902457b43c9fa8933  stack-0.1.2.2.tar.gz"

@@ -1,0 +1,39 @@
+FROM ghcapk:latest
+
+USER root
+COPY example/mitch.tishmack@gmail.com-55881c97.rsa.pub /etc/apk/keys/mitch.tishmack@gmail.com-55881c97.rsa.pub
+
+USER $builduser
+RUN rm -fr /home/$builduser/packages/testing
+COPY alpine-ghc/7.10/x86_64/ /home/$builduser/packages/testing/x86_64
+ENV stack /home/$builduser/aports/testing/stack
+RUN mkdir -p $stack
+COPY stack $stack
+WORKDIR $stack
+
+USER root
+RUN apk update && \
+    chown -R $builduser /home/$builduser/packages
+
+USER $builduser
+RUN abuild checksum && abuild -r
+
+ENV username "Mitch Tishmack"
+ENV useremail mitch.tishmack@gmail.com
+ENV builduser build
+
+USER root
+RUN apk update && apk add git abuild && rm /home/$builduser/.abuild/* && \
+    echo "PACKAGER='$username <$useremail>'" >> /etc/abuild.conf
+
+USER build
+WORKDIR $HOME
+COPY alpine-keys.tar /home/$builduser/.abuild/alpine-keys.tar
+RUN cd /home/$builduser/.abuild && tar xvf alpine-keys.tar
+RUN rm /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz && \
+    apk index -o /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz /home/$builduser/packages/testing/x86_64/*.apk && \
+    cp /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz && \
+    abuild-sign -k /home/$builduser/.abuild/*.rsa /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
+
+USER root
+RUN cp /home/$builduser/.abuild/*.pub /etc/apk/keys && chmod o+r /etc/apk/keys/*.pub

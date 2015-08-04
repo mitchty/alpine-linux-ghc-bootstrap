@@ -74,3 +74,10 @@ RUN apk update
 USER $builduser
 WORKDIR $cabal_install
 RUN abuild checksum && abuild -r
+
+ENV stack /home/$builduser/aports/testing/stack
+RUN mkdir -p $stack
+COPY stack $stack
+USER $builduser
+WORKDIR $stack
+RUN abuild checksum && abuild -r

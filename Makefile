@@ -7,7 +7,7 @@ PKGXZ:=$(BSDIR)/$(BOOTSTRAPXZ)
 TAR:=gtar
 BACON:=next
 
-.PHONY: test bacon
+.PHONY: test bacon stack
 
 all: bootstrap apk test apkbuild
 
@@ -28,12 +28,27 @@ test:
 
 
 alpine-ghc:
-	mkdir alpine-ghc
-	s3cmd sync s3://alpine-ghc/ alpine-ghc/
+	mkdir -p alpine-ghc
+
+from-s3:
+	s3cmd sync --delete-removed s3://alpine-ghc/ alpine-ghc/
+
+stack: from-s3 stack-real
+
+stack-real:
+	docker build -t $(ALPINENAME):stack -f Dockerfile.stack .
+	docker run -a stdout $(ALPINENAME):stack /bin/tar -cf - /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
+	docker run -a stdout $(ALPINENAME):stack /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
+
+sign-apks:
+	docker run -a stdout apkfiles:latest /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
+
+sync-s3:
+	s3cmd sync --acl-public alpine-ghc/ s3://alpine-ghc/
 
 bacon: alpine-ghc
 	docker run -a stdout ghcapk:latest /bin/tar -cf - /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/cabal-install/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
-	docker build --no-cache -t apkfiles -f Dockerfile.apk .
+	docker build -t apkfiles -f Dockerfile.apk .
 	-mkdir -p alpine-ghc/$(BACON)/x86_64
 	docker run -a stdout apkfiles:latest /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
 	s3cmd sync --acl-public alpine-ghc/$(BACON)/ s3://alpine-ghc/$(BACON)/
