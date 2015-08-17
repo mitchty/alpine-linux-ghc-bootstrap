@@ -86,12 +86,12 @@ FIN
 sandbox_prerequisites() {
 	cd "$_builddir"
 	export PATH=$PATH:$(pwd)/.cabal-sandbox/bin
-	# Note, will initialize ~/.cabal/config, haven't found a way to override
-	# this behavior as of yet so the build user directory will have some
-	# leftovers after a build. It isn't a big deal however.
+	OHOME="${HOME}"
+	export HOME="$_builddir"
 	cabal update
 	cabal sandbox init
 	cabal install happy alex
+	export HOME="${OHOME}"
 }
 
 build_normal() {

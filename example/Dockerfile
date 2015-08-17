@@ -6,15 +6,15 @@ RUN echo "https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10" >> /etc/apk/reposi
 # Make sure I built my own apks... >.<
 COPY mitch.tishmack@gmail.com-55881c97.rsa.pub /etc/apk/keys/mitch.tishmack@gmail.com-55881c97.rsa.pub
 
-RUN apk update 
+RUN apk update && apk upgrade
 
 # Prereqs
-RUN apk add ghc cabal-install bash linux-headers musl-dev gmp-dev zlib-dev make
+RUN apk add ghc stack cabal-install bash linux-headers musl-dev gmp-dev zlib-dev make
 
 ENV PATH ${PATH}:/root/.cabal/bin
-RUN cabal update 
+RUN cabal update && stack update
 
 # Install some stuff
-RUN cabal install alex happy stack
+RUN cabal install alex happy
 
 CMD ["bash"]

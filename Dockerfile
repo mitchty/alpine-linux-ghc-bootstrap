@@ -4,7 +4,7 @@ ENV username "Mitch Tishmack"
 ENV useremail mitch.tishmack@gmail.com
 ENV builduser build
 
-RUN apk update && apk add git abuild docker perl
+RUN apk update && apk upgrade && apk add git abuild docker perl
 
 RUN echo "PACKAGER='$username <$useremail>'" >> /etc/abuild.conf
 

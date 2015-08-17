@@ -1,13 +1,13 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=stack
-pkgver=0.1.2.2
+pkgver=0.1.3.1
 pkgrel=0
 pkgdesc="Stack"
 url="https://github.com/commercialhaskell/stack"
 arch="x86_64"
 license="bsd3"
-depends="ghc zlib"
+depends="ghc zlib ca-certificates"
 makedepends="bash gmp-dev zlib-dev linux-headers ghc gzip cabal-install musl-dev chrpath"
 install=""
 subpackages="$pkgname-doc"
@@ -35,6 +35,6 @@ package() {
 	install -m755 "$pkg_stack" "$pkgdir/usr/bin" || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }
-md5sums="c9c5978245010953cfa86664a2dba4c1  stack-0.1.2.2.tar.gz"
-sha256sums="636af24cf50f8be44ed005804e93d04f7e7c3b59ced63184d642dbe1e1c90b3d  stack-0.1.2.2.tar.gz"
-sha512sums="818fa20fdafba1678afb52682a774f0edbfaed2080c2e4be2ece188b74e49d741e440c99080ce8a19b087ffd5e6e71269dae9f77a22f29d902457b43c9fa8933  stack-0.1.2.2.tar.gz"
+md5sums="1029d6d239d1cead55872dedd2b9a5c8  stack-0.1.3.1.tar.gz"
+sha256sums="3e6a575a3f5206af345912c4deba9552dfb156391357cec4eb1c2a9028ba4c51  stack-0.1.3.1.tar.gz"
+sha512sums="c5626cb76ce30d38c27eab39ad65ee93817baf5c17a52afc62508f2ca16bf06e545a91de933d1e34f292f0b12b7575e890e0d2154fcdd396dea66435204efde8  stack-0.1.3.1.tar.gz"

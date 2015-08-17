@@ -23,10 +23,13 @@ build() {
 	# yeah technically we build twice, but its mostly due to
 	# the bootstrap build not being fully static and having a
 	# polluted rpath
+	OHOME="${HOME}"
+	export HOME="$_builddir"
 	cabal update || return 1
 	cabal sandbox init || return 1
 	cabal install --only-dependencies || return 1
 	cabal build --ghc-option=-optl=-static --ghc-option=-optl=-pthread || return 1
+	export HOME="${OHOME}"
 }
 
 package() {
