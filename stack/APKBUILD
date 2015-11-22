@@ -1,7 +1,7 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=stack
-pkgver=0.1.6.0
+pkgver=0.1.8.0
 pkgrel=0
 pkgdesc="Stack"
 url="https://github.com/commercialhaskell/stack"
@@ -20,13 +20,6 @@ build() {
 	export OHOME="$HOME"
 	export HOME="$_builddir"
 	cabal update || return 1
-        # Until https://github.com/Daniel-Diaz/pcre-light/pull/3
-        # is integrated, use my patch for sed
-        cabal get pcre-light || return 1
-        cd pcre-light*
-        curl -L "https://github.com/mitchty/pcre-light/commit/12b2d760219144add1194b7a1da50ae6ddf4f33e.diff" -o sed.patch || return 1
-        patch -p1 < sed.patch  || return 1
-        CPPFLAGS=-O2 cabal install || return 1
         cd "$_builddir"
 	cabal install --only-dependencies || return 1
 	cabal install -v3 || return 1
@@ -41,6 +34,6 @@ package() {
 	install -m755 "$pkg_stack" "$pkgdir/usr/bin" || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }
-md5sums="da3fb05ede51d26eb65ca0dbac735398  stack-0.1.6.0.tar.gz"
-sha256sums="71014893d9a01f33c8e7400357813f610cc264a011d5e6af3ca8f9b598940d36  stack-0.1.6.0.tar.gz"
-sha512sums="0f90141d5af5b41a0e6bdf7d2c5c9e9c8367ec4025049ed676af3c4fee173086831b4e6e4024edd7c2fb1e030ad9bdb07280c8b0b16a3a380e4ddf371aaff05e  stack-0.1.6.0.tar.gz"
+md5sums="a390680213a1c9bb9e5fd39805408ff8  stack-0.1.8.0.tar.gz"
+sha256sums="1cf990d9f975e5c20dfca6e6b292cebba376dbc8ffde22ce758208dad8b5f7b7  stack-0.1.8.0.tar.gz"
+sha512sums="6c9a027bba69e98e729931f8f6decf8f1db30db329c74670f6dc8f2a987bdc578992a7027026eb7edfa5eed5ca818086f7f57e23c59316e71c75939ea5efda05  stack-0.1.8.0.tar.gz"
