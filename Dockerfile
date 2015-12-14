@@ -31,13 +31,13 @@ WORKDIR $ghc
 USER root
 RUN cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys && \
    echo /home/$builduser/packages/testing >> /etc/apk/repositories && \
-   mkdir -p $ghc && \
-   chown $builduser:abuild $ghc
-
-USER $builduser
+   mkdir -p $ghc
 COPY ghc $ghc
-#ENV bs_url http://bsd.lan:8000/ghc-x86_64-linux-musl-7.10.2.tar.xz
-ENV bs_url https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10/ghc-x86_64-linux-musl-7.10.2.tar.xz
+RUN  chown -R $builduser:abuild $ghc
+RUN apk update
+USER $builduser
+ENV bs_url http://bsd.lan:8000/ghc-x86_64-linux-musl-7.10.2.tar.xz
+#ENV bs_url https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10/ghc-x86_64-linux-musl-7.10.2.tar.xz
 RUN /usr/bin/env BOOTSTRAP=$bs_url abuild checksum && \
     /usr/bin/env BOOTSTRAP=$bs_url abuild -r
 
@@ -55,6 +55,7 @@ COPY cabal-install $cabal_install
 
 USER root
 RUN apk update
+RUN chown -R $builduser:abuild $cabal_install
 
 USER $builduser
 WORKDIR $cabal_install
@@ -76,8 +77,10 @@ WORKDIR $cabal_install
 RUN abuild checksum && abuild -r
 
 ENV stack /home/$builduser/aports/testing/stack
+USER root
 RUN mkdir -p $stack
 COPY stack $stack
+RUN chown -R $builduser:abuild $stack
 USER $builduser
 WORKDIR $stack
 RUN abuild checksum && abuild -r

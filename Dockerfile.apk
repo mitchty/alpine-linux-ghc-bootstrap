@@ -25,11 +25,15 @@ RUN git config --global user.name '$username' && \
 USER root
 RUN rm -fr /home/$builduser/.abuild/*.rsa*
 
+COPY alpine-keys.tar /home/$builduser/.abuild/alpine-keys.tar
+RUN chown -R $builduser:abuild /home/${builduser}
 USER $builduser
 WORKDIR /tmp
-COPY alpine-keys.tar /home/$builduser/.abuild/alpine-keys.tar
 RUN cd /home/$builduser/.abuild && tar xvf alpine-keys.tar
 COPY alpine-ghc/next/x86_64 /home/$builduser/packages/testing/x86_64
+USER root
+RUN chown -R $builduser:abuild /home/${builduser}
+USER $builduser
 RUN apk index -o /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz `find /home/$builduser/packages/testing/x86_64 -name '*.apk'` || /bin/true
 USER root
 RUN rm /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz

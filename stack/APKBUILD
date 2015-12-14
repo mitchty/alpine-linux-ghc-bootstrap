@@ -2,7 +2,7 @@
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=stack
 pkgver=0.1.8.0
-pkgrel=0
+pkgrel=1
 pkgdesc="Stack"
 url="https://github.com/commercialhaskell/stack"
 arch="x86_64"

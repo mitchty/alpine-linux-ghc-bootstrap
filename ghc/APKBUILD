@@ -2,8 +2,8 @@
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=ghc
 pkgdesc="The Glasgow haskell compiler"
-pkgver=7.10.2
-pkgrel=1
+pkgver=7.10.3
+pkgrel=0
 url="http://haskell.org"
 arch="x86_64"
 # Note ghc's license is basically bsd3. If you'd like to know more visit:
@@ -143,6 +143,6 @@ package() {
 		mv usr "$pkgdir" || return 1
 	fi
 }
-md5sums="d4e1be9ab132f4afe9ac517c15d36fde  ghc-7.10.2-src.tar.bz2"
-sha256sums="8d6b58ca000479432411cf0adcc443953ef089e04bcbba8d62d1d283446b2271  ghc-7.10.2-src.tar.bz2"
-sha512sums="ba130597d68013590f1fdf1ee52efed081d6d064826ec1b5e037cad1ad29720fa58edf1728c7342cd285f8aeb9d74143aa51ec88e5a3f4af480a9e77e23d45d6  ghc-7.10.2-src.tar.bz2"
+md5sums="afd94782875acc57673965fe890246b0  ghc-7.10.3-src.tar.bz2"
+sha256sums="3e29a56a74ed6a74d3ee2a6db9389f2462837da46ca6dce9d2965f9c152f0c15  ghc-7.10.3-src.tar.bz2"
+sha512sums="97a8282d8a75399c78d85d6faab7ac253a993dc69f1840358572f1878b8fd1a527c28801e5823c8200b5690e268e4a0c00941945ada13790852c75a83b612c17  ghc-7.10.3-src.tar.bz2"
