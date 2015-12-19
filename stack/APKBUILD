@@ -1,8 +1,8 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=stack
-pkgver=0.1.8.0
-pkgrel=1
+pkgver=0.1.10.1
+pkgrel=0
 pkgdesc="Stack"
 url="https://github.com/commercialhaskell/stack"
 arch="x86_64"
@@ -34,6 +34,6 @@ package() {
 	install -m755 "$pkg_stack" "$pkgdir/usr/bin" || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }
-md5sums="a390680213a1c9bb9e5fd39805408ff8  stack-0.1.8.0.tar.gz"
-sha256sums="1cf990d9f975e5c20dfca6e6b292cebba376dbc8ffde22ce758208dad8b5f7b7  stack-0.1.8.0.tar.gz"
-sha512sums="6c9a027bba69e98e729931f8f6decf8f1db30db329c74670f6dc8f2a987bdc578992a7027026eb7edfa5eed5ca818086f7f57e23c59316e71c75939ea5efda05  stack-0.1.8.0.tar.gz"
+md5sums="4b44d0ac8ed75e6c091e0dda3c055130  stack-0.1.10.0.tar.gz"
+sha256sums="caa05fe0b5da10b34989ce2c3b86a72e540de10530792e49caf3055fd57b33fd  stack-0.1.10.0.tar.gz"
+sha512sums="4dd503eb76a92e1b6779b98fc4da1d63703bf8cc7c2f8b995297a66a3de39029bbda3683340ed0298455e4bf581e6eea005bbbb3e25fa3cd45a89af6350127a3  stack-0.1.10.0.tar.gz"

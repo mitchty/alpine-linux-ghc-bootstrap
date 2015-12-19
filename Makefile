@@ -33,7 +33,7 @@ alpine-ghc:
 from-s3:
 	s3cmd sync --delete-removed s3://alpine-ghc/ alpine-ghc/
 
-stack: from-s3 stack-real
+stack: from-s3 stack-real stack-apk
 
 stack-real: alpine-ghc/$(BACON)
 	docker build -t $(ALPINENAME):stack -f Dockerfile.stack .
