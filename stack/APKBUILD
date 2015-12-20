@@ -34,6 +34,6 @@ package() {
 	install -m755 "$pkg_stack" "$pkgdir/usr/bin" || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }
-md5sums="4b44d0ac8ed75e6c091e0dda3c055130  stack-0.1.10.0.tar.gz"
-sha256sums="caa05fe0b5da10b34989ce2c3b86a72e540de10530792e49caf3055fd57b33fd  stack-0.1.10.0.tar.gz"
-sha512sums="4dd503eb76a92e1b6779b98fc4da1d63703bf8cc7c2f8b995297a66a3de39029bbda3683340ed0298455e4bf581e6eea005bbbb3e25fa3cd45a89af6350127a3  stack-0.1.10.0.tar.gz"
+md5sums="13e4da38a32ee27421f77831c9f9476d  stack-0.1.10.1.tar.gz"
+sha256sums="eb53fafac78e8f84b8c3f57e29f608ef1eb9a40fd92b24aef1be5f6b422982a0  stack-0.1.10.1.tar.gz"
+sha512sums="ec5d1af6395519752c8f203f8633dca5e0fee40281488e194c95c27a5aa05e721cb5811f298e37a2d6d936608209a38e2ce9b6086d385b6e9689754a8d7234b0  stack-0.1.10.1.tar.gz"
