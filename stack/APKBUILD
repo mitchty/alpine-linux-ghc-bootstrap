@@ -1,7 +1,7 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=stack
-pkgver=0.1.10.1
+pkgver=1.0.0
 pkgrel=0
 pkgdesc="Stack"
 url="https://github.com/commercialhaskell/stack"
@@ -21,7 +21,6 @@ build() {
 	export HOME="$_builddir"
 	cabal update || return 1
         cd "$_builddir"
-	cabal install --only-dependencies || return 1
 	cabal install -v3 || return 1
 	export HOME="$OHOME"
 }
@@ -34,6 +33,6 @@ package() {
 	install -m755 "$pkg_stack" "$pkgdir/usr/bin" || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }
-md5sums="13e4da38a32ee27421f77831c9f9476d  stack-0.1.10.1.tar.gz"
-sha256sums="eb53fafac78e8f84b8c3f57e29f608ef1eb9a40fd92b24aef1be5f6b422982a0  stack-0.1.10.1.tar.gz"
-sha512sums="ec5d1af6395519752c8f203f8633dca5e0fee40281488e194c95c27a5aa05e721cb5811f298e37a2d6d936608209a38e2ce9b6086d385b6e9689754a8d7234b0  stack-0.1.10.1.tar.gz"
+md5sums="cc6b223881c4947064fb0e01834062da  stack-1.0.0.tar.gz"
+sha256sums="72f1874fa709b5c6dd3bc281b691064256963019f8c3747dd138baf3dc345fca  stack-1.0.0.tar.gz"
+sha512sums="3fe8637d4a89cb12f9b9bdb10856dc2bb85eb9e39cb3c1bf28387161fedde0849b7b36527f9ffb619b4840232af3e37db77b93760eceb1c86a625a97ab646fbe  stack-1.0.0.tar.gz"
