@@ -7,7 +7,7 @@ PKGXZ:=$(BSDIR)/$(BOOTSTRAPXZ)
 TAR:=gtar
 BACON:=next
 
-.PHONY: test bacon stack
+.PHONY: test bacon stack bootstrap
 
 all: bootstrap apk test
 
@@ -43,15 +43,17 @@ stack-apk:
 	docker run -a stdout $(ALPINENAME):stack /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
 
 alpine-ghc/$(BACON):
-	mkdir -p alpine-ghc/$(BACON)
+	mkdir -p $@
 
-local-apks: alpine-ghc/$(BACON) stack-apk
-	docker run -a stdout $(ALPINENAME):apkfiles /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
+alpine-ghc/$(BACON)/x86_64: alpine-ghc/$(BACON)
+	mkdir -p $@
 
-rebuild-apks: alpine-ghc/$(BACON)
-	docker run -a stdout $(ALPINENAME):latest /bin/tar -cf - /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/cabal-install/APKBUILD /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
+local-apks: alpine-ghc/$(BACON)
+	docker run -a stdout $(ALPINENAME):latest /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
+
+rebuild-apks: alpine-ghc/$(BACON)/x86_64
+	docker run -a stdout $(ALPINENAME):latest /bin/tar -cf - /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
 	docker build -t $(ALPINENAME):apkfiles -f Dockerfile.apk .
-	-mkdir -p alpine-ghc/$(BACON)/x86_64
 	docker run -a stdout $(ALPINENAME):apkfiles /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
 
 test-s3: local-apks sync-s3
@@ -60,7 +62,7 @@ sync-s3:
 	s3cmd sync --acl-public alpine-ghc/ s3://alpine-ghc/
 
 bacon: alpine-ghc
-	docker run -a stdout ghcapk:latest /bin/tar -cf - /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/cabal-install/APKBUILD  /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
+	docker run -a stdout ghcapk:latest /bin/tar -cf - /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
 	docker build -t apkfiles -f Dockerfile.apk .
 	-mkdir -p alpine-ghc/$(BACON)/x86_64
 	docker run -a stdout apkfiles:latest /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)

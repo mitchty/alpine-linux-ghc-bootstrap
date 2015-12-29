@@ -26,18 +26,18 @@ USER root
 RUN rm -fr /home/$builduser/.abuild/*.rsa*
 
 COPY alpine-keys.tar /home/$builduser/.abuild/alpine-keys.tar
-RUN chown -R $builduser:abuild /home/${builduser}
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 USER $builduser
 WORKDIR /tmp
 RUN cd /home/$builduser/.abuild && tar xvf alpine-keys.tar
 COPY alpine-ghc/next/x86_64 /home/$builduser/packages/testing/x86_64
 USER root
-RUN chown -R $builduser:abuild /home/${builduser}
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 USER $builduser
 RUN apk index -o /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz `find /home/$builduser/packages/testing/x86_64 -name '*.apk'` || /bin/true
 USER root
 RUN rm /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
 RUN cp /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
-RUN chown $builduser:abuild /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 RUN abuild-sign -k /home/$builduser/.abuild/*.rsa /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
 RUN cp /home/$builduser/.abuild/*.pub /etc/apk/keys && chmod o+r /etc/apk/keys/*.pub

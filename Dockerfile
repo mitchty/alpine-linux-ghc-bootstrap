@@ -25,19 +25,20 @@ RUN git config --global user.name '$username' && \
     mkdir -p $ghc && \
     abuild-keygen -a -i
 
-RUN perl -pi -e "s/JOBS[=]2/JOBS\=8/" /etc/abuild.conf
-
 WORKDIR $ghc
 USER root
+RUN perl -pi -e "s/JOBS[=]2/JOBS\=6/" /etc/abuild.conf
 RUN cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys && \
    echo /home/$builduser/packages/testing >> /etc/apk/repositories && \
    mkdir -p $ghc
 COPY ghc $ghc
-RUN  chown -R $builduser:abuild $ghc
+RUN chown -R $builduser:abuild $ghc
 RUN apk update
 USER $builduser
 #ENV bs_url http://bsd.lan:8000/ghc-x86_64-linux-musl-7.10.2.tar.xz
 ENV bs_url https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10/ghc-x86_64-linux-musl-7.10.2.tar.xz
+
+# Build via the bootstrap compiler first
 RUN /usr/bin/env BOOTSTRAP=$bs_url abuild checksum && \
     /usr/bin/env BOOTSTRAP=$bs_url abuild -r
 
@@ -46,36 +47,12 @@ RUN apk update
 
 USER $builduser
 WORKDIR $ghc
-RUN /usr/bin/env VIABOOTSTRAP=yes abuild checksum && \
-    /usr/bin/env VIABOOTSTRAP=yes abuild -r
-
-ENV cabal_install /home/$builduser/aports/testing/cabal-install
-RUN mkdir -p $cabal_install
-COPY cabal-install $cabal_install
-
-USER root
-RUN apk update
-RUN chown -R $builduser:abuild $cabal_install
-
-USER $builduser
-WORKDIR $cabal_install
-RUN /usr/bin/env BOOTSTRAP=yes abuild checksum && \
-    /usr/bin/env BOOTSTRAP=yes abuild -r
-
-USER root
-RUN apk update
-
-USER $builduser
-WORKDIR $ghc
 RUN abuild checksum && abuild -r
 
 USER root
 RUN apk update
 
-USER $builduser
-WORKDIR $cabal_install
-RUN abuild checksum && abuild -r
-
+# and build stack for good measure
 ENV stack /home/$builduser/aports/testing/stack
 USER root
 RUN mkdir -p $stack

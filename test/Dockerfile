@@ -5,11 +5,11 @@ ENV PATH ${PATH}:${HOME}/.cabal/bin
 WORKDIR /tmp
 RUN apk update
 
-RUN apk add ghc cabal-install linux-headers musl-dev gmp-dev zlib-dev make \
-    curl-dev openssl-dev ncurses-dev llvm sqlite-dev libstdc++ && \
+RUN apk add ghc ghc-dev cabal stack alpine-sdk openssl-dev \
+    sqlite-dev curl-dev libstdc++ && \
     cabal update && \
     cd ~/.cabal && cp config config.prestackage && \
-    cd ~/.cabal && curl -sS 'https://www.stackage.org/nightly-2015-07-29/cabal.config?global=true' >> ${HOME}/.cabal/config
+    cd ~/.cabal && curl -sS 'https://www.stackage.org/nightly-2016-01-06/cabal.config?global=true' >> ${HOME}/.cabal/config
 
 RUN cabal install alex happy && \
     cabal install c2hs
