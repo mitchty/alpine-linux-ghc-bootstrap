@@ -1,0 +1,60 @@
+diff --git a/ghc.mk b/ghc.mk
+index d49b3af..5f0807a 100644
+--- a/ghc.mk
++++ b/ghc.mk
+@@ -386,7 +386,7 @@ else
+ PACKAGES_STAGE0 = binary Cabal/Cabal hpc bin-package-db hoopl transformers
+ ifeq "$(Windows_Host)" "NO"
+ ifneq "$(HostOS_CPP)" "ios"
+-PACKAGES_STAGE0 += terminfo
++PACKAGES_STAGE0 +=
+ endif
+ endif
+ 
+@@ -424,7 +424,7 @@ endif
+ 
+ ifeq "$(Windows_Target)" "NO"
+ ifneq "$(TargetOS_CPP)" "ios"
+-PACKAGES_STAGE1 += terminfo
++PACKAGES_STAGE1 +=
+ endif
+ endif
+ PACKAGES_STAGE1 += haskeline
+diff --git a/libffi/ghc.mk b/libffi/ghc.mk
+index 59e089d..7e743f6 100644
+--- a/libffi/ghc.mk
++++ b/libffi/ghc.mk
+@@ -65,6 +65,7 @@ $(libffi_STAMP_CONFIGURE): $(TOUCH_DEP)
+ # We have to fake a non-working ln for configure, so that the fallback
+ # option (cp -p) gets used instead.  Otherwise the libffi build system
+ # will use cygwin symbolic links which cannot be read by mingw gcc.
++	cp /usr/share/misc/config.sub libffi/build/config.sub
+ 	chmod +x libffi/ln
+ 
+ 	# don't report nonselinux systems as selinux
+diff --git a/utils/ghc-pkg/Main.hs b/utils/ghc-pkg/Main.hs
+index decdb38..f852114 100644
+--- a/utils/ghc-pkg/Main.hs
++++ b/utils/ghc-pkg/Main.hs
+@@ -1,6 +1,7 @@
+ {-# LANGUAGE CPP, TypeSynonymInstances, FlexibleInstances, RecordWildCards,
+              GeneralizedNewtypeDeriving, StandaloneDeriving #-}
+ {-# OPTIONS_GHC -fno-warn-orphans #-}
++#define BOOTSTRAPPING
+ -----------------------------------------------------------------------------
+ --
+ -- (c) The University of Glasgow 2004-2009.
+diff --git a/utils/ghc-pkg/ghc-pkg.cabal b/utils/ghc-pkg/ghc-pkg.cabal
+index 317aab7..72b244a 100644
+--- a/utils/ghc-pkg/ghc-pkg.cabal
++++ b/utils/ghc-pkg/ghc-pkg.cabal
+@@ -28,7 +28,7 @@ Executable ghc-pkg
+                    bin-package-db,
+                    bytestring
+     if !os(windows)
+-        Build-Depends: unix,
+-                       terminfo
++        Build-Depends: unix
++
+     if os(windows)
+         c-sources: CRT_noglob.c

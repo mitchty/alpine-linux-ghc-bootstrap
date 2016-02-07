@@ -1,101 +1,98 @@
-FROM ubuntu:14.04
+# WIP: simplify generating a bootstrap compiler
+from debian:8.0
 
-# NOTE
-#
-# This Docker file will generate and build a ghc cross compiler for x86_64
-# with musl libc as the libc in use.
-#
-# Future enhancements to this build process for i386/arm are in order. Consider
-# that a TODO item.
-#
-# The final result is a tar.gz file in /tmp with the output of:
-# make install DESTDIR=/usr
-#
-# Also note, this is set to use make -j8 to speed things along. Every run
-# of this container will yield a different result unfortunately.
-#
-RUN \
-  sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
-  apt-get update && \
-  apt-get install -y build-essential && \
-  apt-get install -y software-properties-common && \
-  apt-get install -y byobu curl git htop man unzip vim wget && \
-  rm -rf /var/lib/apt/lists/*
+# all needed packages for compiling
+run apt-get update && \
+    apt-get install -y \
+      binutils-gold \
+      musl-tools \
+      build-essential \
+      wget \
+      curl \
+      libncurses-dev \
+      autoconf \
+      elfutils \
+      libgmp-dev \
+      zlib1g-dev \
+      git \
+      libtool \
+      pkg-config \
+      libffi-dev \
+      cmake \
+      g++ \
+      python
 
-ENV HOME /root
+# build llvm 3.6 with the same patches
+# as alpine will use, need this for stage2 builds (and eventually arm)
+env llvm 3.6.2
+workdir /tmp
+copy llvm-$llvm.src.tar.xz /tmp/llvm.txz
+copy polly-$llvm.src.tar.xz /tmp/polly.txz
+run tar xJpf /tmp/llvm.txz
+run tar xJpf /tmp/polly.txz
+copy llvm-0001-fix-shared-build.patch /tmp/llvm-0001-fix-shared-build.patch
+copy llvm-0002-musl-triple.patch /tmp/llvm-0002-musl-triple.patch
+copy llvm-0003-musl-hacks.patch /tmp/llvm-0003-musl-hacks.patch
+copy llvm.sh /tmp/llvm.sh
+run /tmp/llvm.sh
 
-WORKDIR /root
+workdir /tmp
 
-ENV bootstrap_ghc_ver 7.10.2
-ENV happy_ver 1.19.5
-ENV alex_ver 3.1.4
-ENV cabal_ver 1.20
-ENV musl_triple x86_64-linux-musl
-ENV ghc_path /opt/ghc/$bootstrap_ghc_ver/bin
-ENV happy_path /opt/happy/$happy_ver/bin
-ENV alex_path /opt/alex/$alex_ver/bin
-ENV cabal_path /opt/cabal/$cabal_ver/bin
-ENV cross_base /opt/cross
-ENV crossmusl_tmp /tmp/musl-cross
-ENV ghc_src_dir $cross_base/src/ghc
-ENV bootstrap_dir /tmp/bootstrap
-ENV cross_ghc_ver 7.10.2
-ENV PATH $cross_base/$musl_triple/bin:$ghc_path:$happy_path:$alex_path:$cabal_path:$PATH
+# Install stock bindist for cross compile
+env ghc 7.10.3
+copy ghc-$ghc-x86_64-deb8-linux.tar.xz /tmp/ghc.txz
+run tar xJpf /tmp/ghc.txz
+workdir /tmp/ghc-$ghc
+run ./configure --prefix=/usr && make -j1 install
+run rm -fr /tmp/ghc-$ghc
 
-RUN \
-    apt-get update && \
-    apt-get install -y software-properties-common && \
-    add-apt-repository -y ppa:hvr/ghc && \
-    apt-get update && \
-    apt-get install -y cabal-install-$cabal_ver ghc-$bootstrap_ghc_ver happy-$happy_ver alex-$alex_ver && \
-    apt-get install -y git mercurial g++ gcc git autoconf ncurses-dev automake libtool make python bzip2 pixz
+# bootstrap cabal and install alex/happy the same way apks are built
+# only globally
+env cabal_version 1.22.7.0
+workdir /tmp
+copy cabal-install-$cabal_version.tar.gz /tmp/cabal.tgz
+run tar xzpf /tmp/cabal.tgz
+workdir /tmp/cabal-install-$cabal_version
+run ./bootstrap.sh --global --no-doc
+run cabal update
+run cabal install --global alex happy
 
-RUN hg clone -r d72695b https://bitbucket.org/GregorR/musl-cross $crossmusl_tmp && \
-    echo "GCC_BUILTIN_PREREQS=yes" >> $crossmusl_tmp/config.sh && \
-    echo "ARCH=x86_64" >> $crossmusl_tmp/config.sh && \
-    cd $crossmusl_tmp && ./build.sh && \
-    cd / && rm -fr $crossmusl_tmp
+# bootstrap ghc then prep for stage 2 with llvm 3.6
+copy ghc-$ghc-src.tar.xz /tmp/ghc-src.txz
+workdir /tmp
+run tar xJpf /tmp/ghc-src.txz
+workdir /tmp/ghc-$ghc
+copy build.mk.stage2 mk/build.mk
+copy ghc-0001-no-dllsplit.patch ghc-0001-no-dllsplit.patch
+copy ghc-0002-llvm-3.6.patch ghc-0002-llvm-3.6.patch
+copy bootstrap.patch bootstrap.patch
+run patch -p1 < ghc-0001-no-dllsplit.patch
+run patch -p1 < ghc-0002-llvm-3.6.patch
+run patch -p1 < bootstrap.patch
+run ./configure \
+  --target=x86_64-pc-linux-musl \
+  --with-gcc=musl-gcc \
+  --with-ld=ld.gold \
+  --with-nm=nm \
+  --with-ar=ar \
+  --with-ranlib=ranlib \
+  --with-readelf=eu-readelf \
+  --prefix=/usr
+run make -j$(grep -c processor /proc/cpuinfo) || make -j1
 
-RUN cd /tmp && mkdir -p $ghc_src_dir && curl -L "https://www.haskell.org/ghc/dist/7.10.2/ghc-7.10.2-src.tar.bz2" | bunzip2 -c - | tar xf - -C $ghc_src_dir
+# HACK unlit/hp2ps gets compiled with stage0 c compiler
+workdir /tmp/ghc-$ghc/utils/unlit
+run rm -fr dist && make GHC=/tmp/ghc-$ghc/inplace/bin/ghc-stage1
+workdir /tmp/ghc-$ghc/utils/hp2ps
+run rm -fr dist && make GHC=/tmp/ghc-$ghc/inplace/bin/ghc-stage1
+env tardir /tmp/root
+workdir /tmp/ghc-$ghc
+run make -j1 install DESTDIR=$tardir
 
-RUN cd /tmp && curl -L http://ftp.gnu.org/gnu/ncurses/ncurses-5.9.tar.gz | \
-    gunzip -c - | tar xf -
-RUN perl -pi -e 's/linux\-uclibc/linux\-musl/g' /tmp/ncurses*/config.sub
-RUN cd /tmp/ncurses-5.9 && ./configure --target=$musl_triple --with-gcc=$musl_triple-gcc --with-shared --host=$musl_triple --with-build-cpp=$musl_triple-g++ --prefix=$cross_base/$musl_triple/$musl_triple && \
-    make -j8 && make && \
-    make install && \
-    cd $cross_base/$musl_triple/$musl_triple/include/ncurses && cp *.h ..
-
-ENV LD_LIBRARY_PATH $cross_base/$musl_triple/$musl_triple/lib:$LD_LIBRARY_PATH
-ENV ghc_src $ghc_src_dir/ghc-$cross_ghc_ver
-ENV unlit_dir $ghc_src/utils/unlit
-ENV settings_file $bootstrap_dir/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
-
-WORKDIR $ghc_src
-COPY build.mk $ghc_src/mk/build.mk
-RUN ./configure --with-gcc=$musl_triple-gcc \
-    --target=$musl_triple \
-    --enable-unregisterised \
-    --prefix=/usr
-RUN make -j8
-
-ENV unlit_dir $ghc_src/utils/unlit
-ENV settings_file $bootstrap_dir/usr/lib/x86_64-pc-linux-musl-ghc-$bootstrap_ghc_ver/settings
-
-WORKDIR $unlit_dir
-RUN rm -fr dist && make GHC=$ghc_src/inplace/bin/ghc-stage1
-
-WORKDIR $ghc_src
-RUN make install DESTDIR=$bootstrap_dir
-
-WORKDIR $bootstrap_dir/usr/bin
-RUN $(for x in $(echo *); do y=$(echo $x | sed -e 's|.*musl-||'); ln -s ${x} ${y}; done) && \
-    perl -pi -e 's/.*C compiler command.*/ \(\"C compiler command\"\, \"gcc\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*Haskell CPP command.*/ \(\"Haskell CPP command\"\,\"gcc\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*ld command.*/ \(\"ld command\"\,\"ld\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*ar command.*/ \(\"ar command\"\,\"ar\"\)\,/' $settings_file && \
-    perl -pi -e 's/.*ld flags.*/ \(\"ld flags\"\,\"\-nopie\"\)\,/' $settings_file
-
-WORKDIR $bootstrap_dir
-RUN tar -Ipixz -cf /tmp/ghc-$musl_triple-$cross_ghc_ver.tar.xz . && \
-    rm -fr $bootstrap_dir
+# remove target prefix from stage2 binaries
+workdir $tardir/usr/bin
+run (for i in x86_64-pc-linux-musl-* ; do ln -s $i ${i#x86_64-pc-linux-musl-} ; done )
+workdir $tardir
+copy settings /tmp/settings
+run mv /tmp/settings $(find $workdir -name settings -type f)
+run tar cvfJ /tmp/ghc-$ghc-x86_64-unknown-linux-musl.tar.xz .
