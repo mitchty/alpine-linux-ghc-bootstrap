@@ -2,7 +2,7 @@
 #-*-mode: Shell-script; coding: utf-8;-*-
 export dir=$(cd "$(dirname "$0")"; pwd)
 export bootstrap_docker=alpine-ghc-bootstrap
-export bootstrap_xz=ghc-x86_64-linux-musl-7.10.2.tar.xz
+export bootstrap_xz=ghc-x86_64-linux-musl-7.10.3.tar.xz
 set -e
 
 # Builds a bootstrap ghc cross compiler.

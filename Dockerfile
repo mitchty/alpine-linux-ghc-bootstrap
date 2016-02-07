@@ -36,7 +36,7 @@ RUN chown -R $builduser:abuild $ghc
 RUN apk update
 USER $builduser
 #ENV bs_url http://bsd.lan:8000/ghc-x86_64-linux-musl-7.10.2.tar.xz
-ENV bs_url https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10/ghc-x86_64-linux-musl-7.10.2.tar.xz
+ENV bs_url https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-x86_64-linux-musl-7.10.3.tar.xz
 
 # Build via the bootstrap compiler first
 RUN /usr/bin/env BOOTSTRAP=$bs_url abuild checksum && \
