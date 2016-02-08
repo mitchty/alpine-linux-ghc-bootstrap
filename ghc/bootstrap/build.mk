@@ -13,4 +13,3 @@ DYNAMIC_GHC_PROGRAMS = NO
 GhcLibWays           = v
 INTEGER_LIBRARY      = integer-simple
 V                    = 0
-#stage                = 2
