@@ -20,7 +20,7 @@ $(TARGET): docker
 	docker run -a stdout "$(DOCKER_NAME):latest" /bin/cat "/tmp/$@" > $@
 
 docker:
-	docker build -t $(DOCKER_NAME) . | tee make-$(shell date +%s).log
+	docker build -t $(DOCKER_NAME) -f bootstrap/Dockerfile . | tee make-$(shell date +%s).log
 
 $(GHC_BS):
 	curl -LO https://downloads.haskell.org/~ghc/$(GHC_VERSION)/$@
