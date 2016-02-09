@@ -20,7 +20,8 @@ run apt-get update && \
       libffi-dev \
       cmake \
       g++ \
-      python
+      python \
+      pixz
 
 # build llvm 3.6 with the same patches
 # as alpine will use, need this for stage2 builds (and eventually arm)
@@ -33,14 +34,15 @@ run tar xJpf /tmp/polly.txz
 copy llvm-0001-fix-shared-build.patch /tmp/llvm-0001-fix-shared-build.patch
 copy llvm-0002-musl-triple.patch /tmp/llvm-0002-musl-triple.patch
 copy llvm-0003-musl-hacks.patch /tmp/llvm-0003-musl-hacks.patch
-copy llvm.sh /tmp/llvm.sh
+copy bootstrap/llvm.sh /tmp/llvm.sh
 run /tmp/llvm.sh
 
 workdir /tmp
 
 # Install stock bindist for cross compile
 env ghc 7.10.3
-copy ghc-$ghc-x86_64-deb8-linux.tar.xz /tmp/ghc.txz
+env arch x86_64
+copy ghc-$ghc-$arch-deb8-linux.tar.xz /tmp/ghc.txz
 run tar xJpf /tmp/ghc.txz
 workdir /tmp/ghc-$ghc
 run ./configure --prefix=/usr && make -j1 install
@@ -62,15 +64,15 @@ copy ghc-$ghc-src.tar.xz /tmp/ghc-src.txz
 workdir /tmp
 run tar xJpf /tmp/ghc-src.txz
 workdir /tmp/ghc-$ghc
-copy build.mk.stage2 mk/build.mk
+copy bootstrap/build.mk mk/build.mk
 copy ghc-0001-no-dllsplit.patch ghc-0001-no-dllsplit.patch
 copy ghc-0002-llvm-3.6.patch ghc-0002-llvm-3.6.patch
-copy bootstrap.patch bootstrap.patch
+copy bootstrap/bootstrap.patch bootstrap.patch
 run patch -p1 < ghc-0001-no-dllsplit.patch
 run patch -p1 < ghc-0002-llvm-3.6.patch
 run patch -p1 < bootstrap.patch
 run ./configure \
-  --target=x86_64-pc-linux-musl \
+  --target=$arch-pc-linux-musl \
   --with-gcc=musl-gcc \
   --with-ld=ld.gold \
   --with-nm=nm \
@@ -91,8 +93,11 @@ run make -j1 install DESTDIR=$tardir
 
 # remove target prefix from stage2 binaries
 workdir $tardir/usr/bin
-run (for i in x86_64-pc-linux-musl-* ; do ln -s $i ${i#x86_64-pc-linux-musl-} ; done )
+run (for i in $arch-pc-linux-musl-* ; do ln -s $i ${i#$arch-pc-linux-musl-} ; done )
 workdir $tardir
-copy settings /tmp/settings
+copy bootstrap/settings /tmp/settings
 run mv /tmp/settings $(find $workdir -name settings -type f)
-run tar cvfJ /tmp/ghc-$ghc-x86_64-unknown-linux-musl.tar.xz .
+
+# Compress to xz via pixz because xz is normally too
+# old for -TN multithreads
+run tar -I'pixz -9' -cf /tmp/ghc-$ghc-$arch-unknown-linux-musl.tar.xz .

@@ -30,7 +30,7 @@ RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$buildus
 USER $builduser
 WORKDIR /tmp
 RUN cd /home/$builduser/.abuild && tar xvf alpine-keys.tar
-COPY alpine-ghc/next/x86_64 /home/$builduser/packages/testing/x86_64
+COPY alpine-ghc/next/7.10/x86_64 /home/$builduser/packages/testing/x86_64
 USER root
 RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 USER $builduser

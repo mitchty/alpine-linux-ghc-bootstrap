@@ -1,17 +1,27 @@
 #-*-mode: Shell-script; coding: utf-8;-*-
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
+set -xe
 pkgname=ghc
 pkgdesc="The Glasgow haskell compiler"
+# We patch ghc 7.10 to use llvm 3.6 to keep things simpler
+llvm_major=3.6
+llvm_version=${llvm_major}.2
+llvm_srcdir="$srcdir/llvm-${llvm_version}.src"
+# For the future
+ghc_extra=""
+builddir_extra=""
 apkgver=7.10.3b
+pkgrel=2
+ghc_extra="
+	ghc-0001-no-dllsplit.patch
+	ghc-0002-llvm-3.6.patch
+"
 pkgver=$(echo ${apkgver} | tr -d '[a-z]')
-pkgrel=1
+_builddir="$srcdir/$pkgname-$pkgver$builddir_extra"
 url="http://haskell.org"
 subpackages="$pkgname-doc $pkgname-dev cabal"
 arch="x86_64"
-# Subpkg tool versions
-llvm_major=3.5
-llvm_version=${llvm_major}.2
 cabal_version=1.22.7.0
 suffix="-${llvm_major}"
 opt=opt${suffix}
@@ -28,7 +38,29 @@ llc=llc${suffix}
 # Ref: https://ghc.haskell.org/trac/ghc/wiki/Status/GHC-8.0.1
 #      https://ghc.haskell.org/trac/ghc/wiki/ImprovedLLVMBackend
 #
-# It is ONLY needed for opt and llc respectively, llvm is not fully installed this way.
+# It is ONLY needed for opt and llc respectively, llvm is not fully installed.
+# ghc source
+source="
+	https://www.haskell.org/ghc/dist/$pkgver/ghc-$apkgver-src.tar.xz
+	$ghc_extra
+	"
+# cabal source
+source="
+	$source
+	https://www.haskell.org/cabal/release/cabal-install-${cabal_version}/cabal-install-${cabal_version}.tar.gz
+	"
+# llvm source
+source="
+	$source
+	llvm-0001-fix-shared-build.patch
+	llvm-0002-musl-triple.patch
+	llvm-0003-musl-hacks.patch
+	http://llvm.org/releases/$llvm_version/llvm-$llvm_version.src.tar.xz
+	http://llvm.org/releases/$llvm_version/polly-$llvm_version.src.tar.xz
+	"
+llvm_builddir="$srcdir/build"
+polly_orig_srcdir="$srcdir"/polly-$llvm_version.src
+
 license="custom:bsd3"
 depends="bash gmp-dev libffi musl zlib ncurses perl gcc"
 install=""
@@ -42,9 +74,14 @@ dev_depends="
 	zlib-dev
 	binutils-dev
 	"
-# ghc build dependencies
+# ghc build dependencies, mostly relating to documentation
 makedepends="
 	$dev_depends
+	docbook-xsl
+	libxml2
+	libxml2-doc
+	libxslt
+	libxslt-doc
 	"
 
 # llvm build dependencies
@@ -71,39 +108,13 @@ makedepends="
 	autoconf
 	automake
 	"
-_builddir="$srcdir/$pkgname-$pkgver"
-
-# ghc source
-source="
-	https://www.haskell.org/ghc/dist/$pkgver/ghc-$apkgver-src.tar.bz2
-	"
-
-# cabal source
-source="
-	$source
-	https://www.haskell.org/cabal/release/cabal-install-${cabal_version}/cabal-install-${cabal_version}.tar.gz
-	"
-
-# llvm source
-source="
-	$source
-	llvm-0001-fix-shared-build.patch
-	llvm-0002-musl-triple.patch
-	llvm-0003-musl-hacks.patch
-	llvm-$llvm_version.tar.gz::https://api.github.com/repos/llvm-mirror/llvm/tarball/release_35@215010
-	http://llvm.org/releases/$llvm_version/polly-$llvm_version.src.tar.xz
-	"
-
-llvm_srcdir="$srcdir/llvm-mirror-llvm-7892e56"
-llvm_builddir="$srcdir/build"
-polly_orig_srcdir="$srcdir"/polly-$llvm_version.src
 
 # bootstrap compiler is just a giant tarball, so no need to patch anything
 if [ -z "$BOOTSTRAP" ]; then
-	msg "Building normal ghc"
 	makedepends="ghc $makedepends"
 
 	prepare() {
+		msg "Building normal ghc"
 		# LLVM patches
 		msg "Patching llvm"
 		cd "$llvm_srcdir"
@@ -117,9 +128,22 @@ if [ -z "$BOOTSTRAP" ]; then
 					;;
 			esac
 		done
+		msg "Patching ghc"
+		cd $_builddir
+		for i in $source; do
+			case $i in
+				ghc-*.patch)
+					msg "Applying $i..."
+					patch -s -p1 -N -i "$srcdir"/$i || return 1
+					;;
+			esac
+		done
+
 	}
 else
-	msg "Building bootstrap ghc"
+	prepare() {
+		msg "Building bootstrap ghc"
+	}
 	# $BOOTSTRAP if set needs to be the tar.gz cross compiler generated off of
 	# a glibc system.
 	pkgdesc="$pkgdesc (bootstrapped)"
@@ -140,26 +164,19 @@ basic_check() {
 }
 
 # Generate our build.mk file.
-#
-# TODO: Get all the haddock documentation building. I'll be honest, that is
-# a super low priority. Thinking I wait until someone asks for it, I bet
-# most people don't even notice and use online references.
 generate_build_mk() {
 	cat > mk/build.mk << "FIN"
-SRC_HC_OPTS          += -optl-pthread
-SRC_HC_OPTS          += -H64m -fPIC
-SRC_CC_OPTS          += -O2 -fPIC
-GhcLibHcOpts         += -fPIC
-GhcRtsCcOpts         += -O2 -fPIC
+SRC_HC_OPTS          += -O2
+SRC_HC_OPTS          += -H64m
+SRC_CC_OPTS          += -Os
+GhcLibHcOpts         += -O
+GhcRtsCcOpts         += -Os
 GhcHcOpts            += -Rghc-timing
+GhcStage2HcOpts      += -O2
 SplitObjs             = YES
 STRIP                 = :
-V                     = 1
+V                     = 0
 BeConservative        = YES
-BUILD_DOCBOOK_HTML    = NO
-BUILD_DOCBOOK_PS      = NO
-BUILD_DOCBOOK_PDF     = NO
-HADDOCK_DOCS          = NO
 FIN
 
 	for x in SRC_HC_OPTS GhcLibHcOpts GhcHcOpts; do
@@ -196,7 +213,7 @@ build_ghc() {
 		export PATH="$srcdir:${PATH}"
 		basic_check || return 1
 		sandbox_prerequisites
-		cd ${srcdir}/ghc-7.10.3
+		cd "${_builddir}"
 		generate_build_mk
 		# ensure we use the right gmp library
 		# maybe make gmp a build option?
@@ -222,6 +239,7 @@ build_ghc() {
 # we can make a fully static cabal binary.
 _builddir_cabal="$srcdir/cabal-install-${cabal_version}"
 build_cabal() {
+	mkdir -p "$_builddir_cabal" || return 1
 	cd "$_builddir_cabal"
 	(
 		export HOME="$_builddir_cabal"
@@ -253,7 +271,7 @@ _cmake_flags="\
 	-DLLVM_INCLUDE_EXAMPLES=NO \
 	-DLIBXML2_INCLUDE_DIR=/usr/include/libxml2 \
 	-DCMAKE_INSTALL_PREFIX=/usr \
-	-DLLVM_TARGETS_TO_BUILD='X86;ARM' \
+	-DLLVM_TARGETS_TO_BUILD='all' \
 	-DLLVM_BUILD_EXTERNAL_COMPILER_RT=NO \
 	-DBUILD_SHARED_LIBS=NO \
 	-DLLVM_EXTERNAL_POLLY_BUILD=NO \
@@ -286,8 +304,8 @@ srcdir_polly="$llvm_srcdir"/tools/polly
 build_llvm() {
 	mv "$srcdir"/polly-$llvm_version.src "$srcdir_polly" || return 1
 
-	# Note, isl is now too new for 3.5.2 in alpine linux.
-	# compile the right version into $srcdir so we can use polly
+	# Compile isl separate from the system isl in case alpine includes
+	# an incompatible isl version
 	build_isl "$srcdir_polly" || return 1
 	(
 		OCFLAGS="${CFLAGS}"
@@ -345,26 +363,22 @@ build_llvm() {
 	) || return 1
 }
 
-# isl is too new in newer versions of alpine linux, but to build llvm with
-# polly we need it, so build that into $srcdir/tmp so we can build llvm
-# with polly optimizations.
+# Build the correct version of isl for the llvm version we have
 build_isl() {
-	msg "building isl"
+	msg "Building isl for polly for llvm"
 	tmp="$srcdir/tmp"
 	install -d ${tmp} || return 1
-	isl_srcdir="$srcdir/isl-$isl_version"
 	isl_srcdir="$tmp/isl"
 	cloog_srcdir="$tmp/cloog"
-	# export ISL_DIR="$isl_srcdir"
-	# export CLOOG_DIR="$cloog_srcdir"
 	cd "$srcdir_polly/utils"
-	./checkout_cloog.sh ${tmp} || return 1
+	./checkout_cloog.sh ${cloog_srcdir} || return 1
+	./checkout_isl.sh ${isl_srcdir} || return 1
 	cd "$isl_srcdir"
 	./configure --build=$CBUILD \
 		--host=$CHOST \
 		--prefix=$tmp || return 1
 	make || return 1
-	make -j1 INSTALL="install -D"	 install || return 1
+	make -j1 INSTALL="install -D" install || return 1
 }
 
 # In short, we build:
@@ -396,12 +410,8 @@ dev() {
 
 # Install cabal here as well.
 cabal() {
-	pkgrel=0
+	pkgrel=1
 	pkgver=${cabal_version}
-	# TODO: Remove this if/when upstreamed into Alpine Linux
-	# only here for my older packages
-	replaces=cabal-install
-	# /TODO
 	depends=""
 	pkgdesc="The Haskell Cabal"
 	install -Dm755 "$srcdir/cabal" "$subpkgdir/usr/bin/cabal" || return 1
@@ -430,9 +440,6 @@ package() {
 		cd "$_builddir"
 		install -d "$pkgdir" || return 1
 		mv usr "$pkgdir" || return 1
-		# Ensure our bootstrap compiler is setup the way it needs to be to be able to run
-		perl -pi -e 's/\"llc\"/\"'"${llc}"'\"/' "$settings" || return 1
-		perl -pi -e 's/\"opt\"/\"'"${opt}"'\"/' "$settings" || return 1
 	fi
 	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
 }

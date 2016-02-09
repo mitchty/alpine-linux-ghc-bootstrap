@@ -9,7 +9,5 @@ HADDOCK_DOCS         = NO
 BUILD_DOCBOOK_HTML   = NO
 BUILD_DOCBOOK_PS     = NO
 BUILD_DOCBOOK_PDF    = NO
-DYNAMIC_GHC_PROGRAMS = NO
-GhcLibWays           = v
 INTEGER_LIBRARY      = integer-simple
 V                    = 0

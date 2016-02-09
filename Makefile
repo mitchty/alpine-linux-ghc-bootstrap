@@ -5,7 +5,8 @@ BSNAME:=alpine-ghc-bootstrap
 ALPINENAME:=ghcapk
 PKGXZ:=$(BSDIR)/$(BOOTSTRAPXZ)
 TAR:=gtar
-BACON:=next
+MAJOR:=7.10
+BACON:=next/$(MAJOR)
 
 .PHONY: test bacon stack bootstrap
 

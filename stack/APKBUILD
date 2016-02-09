@@ -1,8 +1,8 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=stack
-pkgver=1.0.0
-pkgrel=1
+pkgver=1.0.2
+pkgrel=0
 pkgdesc="The Haskell Tool Stack"
 url="https://github.com/commercialhaskell/stack"
 arch="x86_64"
@@ -13,7 +13,6 @@ install=""
 subpackages="$pkgname-doc"
 source="
 	$pkgname-$pkgver.tar.gz::https://github.com/commercialhaskell/stack/archive/v$pkgver.tar.gz
-	stack-0001-add-static-flag-for-executable.patch
 "
 _builddir="$srcdir/$pkgname-$pkgver"
 
@@ -49,9 +48,6 @@ package() {
 	install -m755 "$pkg_stack" "$pkgdir/usr/bin" || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }
-md5sums="cc6b223881c4947064fb0e01834062da  stack-1.0.0.tar.gz
-b4da410479c785de05da243d58eeecb2  stack-0001-add-static-flag-for-executable.patch"
-sha256sums="72f1874fa709b5c6dd3bc281b691064256963019f8c3747dd138baf3dc345fca  stack-1.0.0.tar.gz
-c9b11c8e2ed0fcd0c7cca92cb081e6d1be7f3bd74ef5da16b8a455bf3d9ff9ec  stack-0001-add-static-flag-for-executable.patch"
-sha512sums="3fe8637d4a89cb12f9b9bdb10856dc2bb85eb9e39cb3c1bf28387161fedde0849b7b36527f9ffb619b4840232af3e37db77b93760eceb1c86a625a97ab646fbe  stack-1.0.0.tar.gz
-4c06825fda7c6434e3356969317a514fd442e6068b4fe22c57e7b7cb72b4964b6a72dab849b7c7fe0e826008d8c5928d9e9e8dc2b73170de231818d3e3dd5834  stack-0001-add-static-flag-for-executable.patch"
+md5sums="80a457ee972588e2e424de6c4dd1a776  stack-1.0.2.tar.gz"
+sha256sums="611e96aab0df2a2ad717cfbfe6018e67a90ecb1fb478c9e3c6d90478125986f0  stack-1.0.2.tar.gz"
+sha512sums="38f4f117d3bceeebe799fbe2c32bbab9d8e952a90562b6de4685bb8de6b6b0f4e911620e7a429821b6b16824acb00427417a6a7ee54528820b499b0fdfc3f3a0  stack-1.0.2.tar.gz"
