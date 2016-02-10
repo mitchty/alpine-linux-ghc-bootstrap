@@ -1,7 +1,6 @@
 #-*-mode: Shell-script; coding: utf-8;-*-
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
-set -xe
 pkgname=ghc
 pkgdesc="The Glasgow haskell compiler"
 # We patch ghc 7.10 to use llvm 3.6 to keep things simpler
@@ -23,6 +22,7 @@ url="http://haskell.org"
 subpackages="$pkgname-doc $pkgname-dev cabal"
 arch="x86_64"
 cabal_version=1.22.7.0
+cabal_release=1
 suffix="-${llvm_major}"
 opt=opt${suffix}
 llc=llc${suffix}
@@ -62,17 +62,17 @@ llvm_builddir="$srcdir/build"
 polly_orig_srcdir="$srcdir"/polly-$llvm_version.src
 
 license="custom:bsd3"
-depends="bash gmp-dev libffi musl zlib ncurses perl gcc"
+depends="bash gmp-dev libffi musl zlib ncurses gcc binutils-gold"
 install=""
 dev_depends="
 	$depends
+	perl
 	linux-headers
 	musl-dev
 	ncurses-dev
 	gmp-dev
 	libffi-dev
 	zlib-dev
-	binutils-dev
 	"
 # ghc build dependencies, mostly relating to documentation
 makedepends="
@@ -169,9 +169,9 @@ generate_build_mk() {
 SRC_HC_OPTS          += -O2
 SRC_HC_OPTS          += -H64m
 SRC_CC_OPTS          += -Os
-GhcLibHcOpts         += -O
+GhcLibHcOpts         += -O2
+GhcHcOpts            += -O2
 GhcRtsCcOpts         += -Os
-GhcHcOpts            += -Rghc-timing
 GhcStage2HcOpts      += -O2
 SplitObjs             = YES
 STRIP                 = :
@@ -220,12 +220,12 @@ build_ghc() {
 		mv libraries/integer-gmp integer-gmp.old || return 1
 		ln -s integer-gmp2 libraries/integer-gmp || return 1
 		./configure \
-			LD=ld.gold \
 			--prefix=/usr \
 			--sysconfdir=/etc \
 			--mandir=/usr/share/man \
 			--infodir=/usr/share/info \
 			--localstatedir=/var \
+			--with-ld=ld.gold \
 			--with-llc=${llc} \
 			--with-opt=${opt} || return 1
 		make $MAKEOPTS || return 1
@@ -395,22 +395,15 @@ build() {
 
 # Install all packages that aren't *technically* required to run ghc/ghci
 # that said, without this, jack and squat will generally compile.
-#
-# This subpackage also includes the "correct" llc and opt we compiled earlier.
 dev() {
 	depends="$dev_depends"
 	pkgdesc="Packages necessary for ghc development"
-	install -d "$subpkgdir/usr/bin" || return 1
-	for x in opt llc; do
-		lhs="$srcdir/${x}${suffix}"
-		rhs="$subpkgdir/usr/bin/${x}${suffix}"
-		install -m755 "$lhs" "$rhs" || return 1
-	done
+	install -d "$subpkgdir" || return 1
 }
 
 # Install cabal here as well.
 cabal() {
-	pkgrel=1
+	pkgrel=${cabal_release}
 	pkgver=${cabal_version}
 	depends=""
 	pkgdesc="The Haskell Cabal"
@@ -420,11 +413,19 @@ cabal() {
 # Nothing special here outside of noting that ghc doesn't play nice with pie executables
 # on alpine linux. Until https://ghc.haskell.org/trac/ghc/ticket/9007 is fixed
 # and ghc can emit pie sanely we need to ensure that -nopie is always used.
+#
+# This package also includes the "correct" llc and opt we compiled earlier.
 package_normal() {
 	cd "$_builddir"
 	make -j1 DESTDIR="$pkgdir" install || return 1
 	settings=$(find "$pkgdir" -name settings -type f)
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
+	install -d "$pkgdir/usr/bin" || return 1
+	for x in opt llc; do
+		lhs="$srcdir/${x}${suffix}"
+		rhs="$pkgdir/usr/bin/${x}${suffix}"
+		install -m755 "$lhs" "$rhs" || return 1
+	done
 }
 
 # Basically package_normal does what package() would do if we didn't have to
@@ -443,24 +444,30 @@ package() {
 	fi
 	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
 }
-md5sums="775c6b23fd863751fae1074d46eefb84  ghc-7.10.3b-src.tar.bz2
+md5sums="d614735d9dac67432f8c6df7e45c76f7  ghc-7.10.3b-src.tar.xz
+d60f77f8a1b92674a6895aeac0ebc89b  ghc-0001-no-dllsplit.patch
+aee95121df64b898cbb5b845484169ce  ghc-0002-llvm-3.6.patch
 12f26ad8585a17a50cdde1a0ea7556d3  cabal-install-1.22.7.0.tar.gz
 0947294a8c83c8d7f857dfc16204c4eb  llvm-0001-fix-shared-build.patch
-e1e37cc0dcfc69f1e8b1b89465452682  llvm-0002-musl-triple.patch
+dacc40624cf09fa98de27016bebb1432  llvm-0002-musl-triple.patch
 056178d87918d531f531b1b765a59e7c  llvm-0003-musl-hacks.patch
-f051162c7a78a88509c152323a8c0839  llvm-3.5.2.tar.gz
-840bb963ac20ac0638822b7c737f78c6  polly-3.5.2.src.tar.xz"
-sha256sums="b0bb177b8095de6074e5a3538e55fd1fc187dae6eb6ae36b05582c55f7d2db6f  ghc-7.10.3b-src.tar.bz2
+0c1ee3597d75280dee603bae9cbf5cc2  llvm-3.6.2.src.tar.xz
+09dd91d06cc0832095379d00206bc3a1  polly-3.6.2.src.tar.xz"
+sha256sums="06c6c20077dc3cf7ea3f40126b2128ce5ab144e1fa66fd1c05ae1ade3dfaa8e5  ghc-7.10.3b-src.tar.xz
+42ee52717f5a39cbf1510b5a20ad58996fafac155c75dae6c8daf09f26a837d9  ghc-0001-no-dllsplit.patch
+964b05e21abf80ef1be3b6d79d4da82b42a7096789ec24f5328584d3ee38a0ab  ghc-0002-llvm-3.6.patch
 b30fd14f20fdd11b028cba68fefeed7eeadcacf919e7c29bc4d7289a656d19f3  cabal-install-1.22.7.0.tar.gz
 4f75c2a76cf4c439d65c8e67511cd91c895edf8ccf003a5f94ffa07c29456296  llvm-0001-fix-shared-build.patch
-a426aae067bf90d5b80ff50cfcd60d0ff501e769091045eda1bb52010208c81e  llvm-0002-musl-triple.patch
+98d92c6cb305faff141b1b5a7cfa18656bd80aa478e7a45984f27e60a80bfdd9  llvm-0002-musl-triple.patch
 c6892c843b38c9a852367e5d76ffc29c21bdfd522adbc4c4e3e3c890a513c0db  llvm-0003-musl-hacks.patch
-73b820f283c0d4c6b2ca286f34a50ae4ec6deeb78adc0eca5b57d4c263068510  llvm-3.5.2.tar.gz
-9d2a4bb8607e0879a0537165b9c2af7cfe4cc998627a62951106bffa1929dbe8  polly-3.5.2.src.tar.xz"
-sha512sums="d117cfd0dc7c1e60a230871e071cf4bd823c67ff5facd804326d2dad402f8eba2066104098e8bee9055d182c401a9c28d2730ef9b65d556cee88a18e639bbf60  ghc-7.10.3b-src.tar.bz2
+f60dc158bfda6822de167e87275848969f0558b3134892ff54fced87e4667b94  llvm-3.6.2.src.tar.xz
+f2a956730b76212f22a1c10f35f195795e4d027ad28c226f97ddb8c0fd16bcbc  polly-3.6.2.src.tar.xz"
+sha512sums="02b7b0bd5773d6437f1d9e4fd9a742c41006af99fe714af690fdfd107e66bbcb9bc76b66c1624c8fabadc50fef93e2c9e49268bc6f1b21fc04497c7bd795d251  ghc-7.10.3b-src.tar.xz
+4a5da8616916c7e81a5857f5407a7e9d4f0aa3f5438ac3b082c157eadf27e4e8ac868a4b8c5dfe614828746376bd61d54e5002b19957188ecf983ea1344a6429  ghc-0001-no-dllsplit.patch
+953053996f6b740ae143f29ac4b78340b204e74eef616015a45c1b8edb4af168a9eb8dbc223b3b8181dee3b8d51e30285246ef907191053174ba640b4240db15  ghc-0002-llvm-3.6.patch
 a88895ee38bf7451ba6a2e929ff224643ea0a536a9633d463d91a471e41b6aae302af2c3ca4fc914e4b3401fcadb137bb0c68c9fb7d0f768835374aef1b22766  cabal-install-1.22.7.0.tar.gz
 b3c0e0f74680e9b2d02f1c923a191ef5eb913be84105e4d63aae6a88b1dac758467cecad3430496a7945cebdc73ec5ee1f643dc5dc7b336fee920e3c8b6d54d2  llvm-0001-fix-shared-build.patch
-f3879e0fdcf1e6509889f64726bc10b84b8bf16dbcb1b1b32f8b25b00cba987ba7c156a577e92338c2f5c4051cbc6832910cb6fdbb9a9f6ac8bcd20dc9e8e783  llvm-0002-musl-triple.patch
+49203df74402b2e080fafb99a4df54d1822dbd3e4e018c44f2b41c95fcfa01b14c8c505405fd1c8909eac5effd36c60decdc771b4db9a16faf5f980af75c7551  llvm-0002-musl-triple.patch
 df8959d43af48054bc35e4125f98e5dab1e1b5beaf7b67e95791caf144efec06764bd31a9eb5efc2179932591de8b862ebf89592d131e47070c89f19412979b7  llvm-0003-musl-hacks.patch
-c6f7baa3fc454ef86bcf819e08c9e73b2902da0cce5b4923af1114d509b4d1987b0d1fd2fde70241478afcaac4b880b0acd8e356259ba432811cfdec4c70b2f4  llvm-3.5.2.tar.gz
-01ec8f03542f4a345522345b4a69c1d775f8799149feebb3f404f289a53bd0b4b4797c0ff14bd2d73bdeb08dab7c89b126f9929f98bf176c8fc80f6a63e91799  polly-3.5.2.src.tar.xz"
+42b44ce69cfb96e2dc12dc2246f0de8ff983a99741206e2c46ccf074b3248aaab9c0f22c6baad802de851d06f202f40db9dd62fe38aab4479b3f70026c936b36  llvm-3.6.2.src.tar.xz
+c3b0ce2179fb441dd1b4c99e801a15bcb205e7156ab22c181e6c4f15abaeec7797ef2ce4b8f41ffd31dd90b224290a15e5d94aaf992fb88fe8444cdb55c24ce1  polly-3.6.2.src.tar.xz"
