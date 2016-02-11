@@ -1,0 +1,42 @@
+#-*-mode: Shell-script; coding: utf-8;-*-
+# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
+# Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
+#
+# Mostly here for porting, beyond that the native ghc
+# should be preferred.
+#
+# Must also keep all the patch files in sync with
+# normal ghc package.
+pkgname=ghc
+pkgdesc="The Glasgow haskell compiler (bootstrapped)"
+apkgver=7.10.3b
+pkgrel=0
+pkgver=$(echo ${apkgver} | tr -d '[a-z]')
+url="http://haskell.org"
+subpackages=""
+arch="x86_64"
+source="https://s3-us-west-2.amazonaws.com/alpine-ghc/next/7.10/ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz"
+license="custom:bsd3"
+depends="bash libffi musl zlib gcc binutils-gold"
+install=""
+subpackages=""
+makedepends="perl"
+
+package() {
+	cd "$srcdir"
+	install -d "$pkgdir" || return 1
+	mv usr "$pkgdir" || return 1
+        settings=$(find "$pkgdir" -name settings -type f)
+	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
+}
+
+# The bootstrap process uses docker to build ghc from a glibc based system
+# then upload the bootstrap compiler to where that source url is.
+#
+# Ensure that docker is running prior to calling this.
+snapshot () {
+	for bs_arch in x86_64; do
+		make ARCH=$bs_arch || return 1
+		scp "ghc-$pkgver-$bs_arch-unknown-linux-musl.tar.xz" /some/where || return 1
+	done
+}

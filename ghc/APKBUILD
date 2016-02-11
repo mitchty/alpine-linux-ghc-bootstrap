@@ -109,49 +109,33 @@ makedepends="
 	automake
 	"
 
-# bootstrap compiler is just a giant tarball, so no need to patch anything
-if [ -z "$BOOTSTRAP" ]; then
-	makedepends="ghc $makedepends"
+makedepends="ghc $makedepends"
 
-	prepare() {
-		msg "Building normal ghc"
-		# LLVM patches
-		msg "Patching llvm"
-		cd "$llvm_srcdir"
-		update_config_sub || return 1
-		sed -i -e '/case "\${UNAME_MACHINE}:\${UNAME_SYSTEM}:\${UNAME_RELEASE}:\${UNAME_VERSION}" in/i \' -e 'if [ x != "x$CBUILD" ]; then echo "$CBUILD"; exit; fi' autoconf/config.guess || return 1
-		for i in $source; do
-			case $i in
-				llvm-*.patch)
-					msg "Applying $i..."
-					patch -s -p1 -N -i "$srcdir"/$i || return 1
-					;;
-			esac
-		done
-		msg "Patching ghc"
-		cd $_builddir
-		for i in $source; do
-			case $i in
-				ghc-*.patch)
-					msg "Applying $i..."
-					patch -s -p1 -N -i "$srcdir"/$i || return 1
-					;;
-			esac
-		done
-
-	}
-else
-	prepare() {
-		msg "Building bootstrap ghc"
-	}
-	# $BOOTSTRAP if set needs to be the tar.gz cross compiler generated off of
-	# a glibc system.
-	pkgdesc="$pkgdesc (bootstrapped)"
-	_builddir="$srcdir"
-	subpackages=""
-	source="$BOOTSTRAP"
-	makedepends=""
-fi
+prepare() {
+	# LLVM patches
+	msg "Patching llvm"
+	cd "$llvm_srcdir"
+	update_config_sub || return 1
+	sed -i -e '/case "\${UNAME_MACHINE}:\${UNAME_SYSTEM}:\${UNAME_RELEASE}:\${UNAME_VERSION}" in/i \' -e 'if [ x != "x$CBUILD" ]; then echo "$CBUILD"; exit; fi' autoconf/config.guess || return 1
+	for i in $source; do
+		case $i in
+			llvm-*.patch)
+				msg "Applying $i..."
+				patch -s -p1 -N -i "$srcdir"/$i || return 1
+				;;
+		esac
+	done
+	msg "Patching ghc"
+	cd $_builddir
+	for i in $source; do
+		case $i in
+			ghc-*.patch)
+				msg "Applying $i..."
+				patch -s -p1 -N -i "$srcdir"/$i || return 1
+				;;
+		esac
+	done
+}
 
 # Stupid simple test to ensure the ghc we're using basically works.
 ghc_llvm_opts=" -fllvm -pgmlc $llc -pgmlo $opt "
@@ -415,12 +399,13 @@ cabal() {
 # and ghc can emit pie sanely we need to ensure that -nopie is always used.
 #
 # This package also includes the "correct" llc and opt we compiled earlier.
-package_normal() {
+package() {
 	cd "$_builddir"
 	make -j1 DESTDIR="$pkgdir" install || return 1
 	settings=$(find "$pkgdir" -name settings -type f)
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 	install -d "$pkgdir/usr/bin" || return 1
+	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
 	for x in opt llc; do
 		lhs="$srcdir/${x}${suffix}"
 		rhs="$pkgdir/usr/bin/${x}${suffix}"
@@ -428,22 +413,6 @@ package_normal() {
 	done
 }
 
-# Basically package_normal does what package() would do if we didn't have to
-# deal with bootstrap build support.
-#
-# But if we're bootstrapping from a cross compiler we just take that
-# note, all it is is a tar.xz of make install DESTDIR=tarballdir
-# and move it into place to make a pseudo ghc package.
-package() {
-	if [ -z "$BOOTSTRAP" ]; then
-		package_normal || return 1
-	else
-		cd "$_builddir"
-		install -d "$pkgdir" || return 1
-		mv usr "$pkgdir" || return 1
-	fi
-	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
-}
 md5sums="d614735d9dac67432f8c6df7e45c76f7  ghc-7.10.3b-src.tar.xz
 d60f77f8a1b92674a6895aeac0ebc89b  ghc-0001-no-dllsplit.patch
 aee95121df64b898cbb5b845484169ce  ghc-0002-llvm-3.6.patch

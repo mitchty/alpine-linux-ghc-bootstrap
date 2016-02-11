@@ -9,6 +9,7 @@ RUN apk update && apk upgrade && apk add git abuild docker perl
 RUN echo "PACKAGER='$username <$useremail>'" >> /etc/abuild.conf
 
 ENV ghc /home/$builduser/aports/testing/ghc
+ENV ghc-bs /home/$builduser/aports/testing/ghc-bootstrap
 # setup build user and clone alpine ports
 RUN adduser -D $builduser && \
     addgroup $builduser abuild && \
@@ -25,25 +26,26 @@ RUN git config --global user.name '$username' && \
     mkdir -p $ghc && \
     abuild-keygen -a -i
 
-WORKDIR $ghc
 USER root
 RUN perl -pi -e "s/JOBS[=]2/JOBS\=6/" /etc/abuild.conf
 RUN cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys && \
    echo /home/$builduser/packages/testing >> /etc/apk/repositories && \
    mkdir -p $ghc
-COPY ghc $ghc
-RUN chown -R $builduser:abuild $ghc
+COPY ghc-bootstrap $ghc-bs
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 RUN apk update
 USER $builduser
-ENV bs_url https://s3-us-west-2.amazonaws.com/alpine-ghc/next/7.10/ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz
 
-# Build via the bootstrap compiler first
-RUN /usr/bin/env BOOTSTRAP=$bs_url abuild checksum && \
-    /usr/bin/env BOOTSTRAP=$bs_url abuild -r
+# build ghc package via bootstrap compiler
+WORKDIR $ghc-bs
+RUN abuild checksum && abuild -r
 
 USER root
 RUN apk update
 
+COPY ghc $ghc
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
+RUN apk update
 USER $builduser
 WORKDIR $ghc
 RUN abuild checksum && abuild -r
@@ -56,7 +58,7 @@ ENV stack /home/$builduser/aports/testing/stack
 USER root
 RUN mkdir -p $stack
 COPY stack $stack
-RUN chown -R $builduser:abuild $stack
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 USER $builduser
 WORKDIR $stack
 RUN abuild checksum && abuild -r
