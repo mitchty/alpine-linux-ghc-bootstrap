@@ -7,7 +7,7 @@
 #
 # Must also keep all the patch files in sync with
 # normal ghc package.
-pkgname=ghc
+pkgname=ghc-bootstrap
 pkgdesc="The Glasgow haskell compiler (bootstrapped)"
 apkgver=7.10.3b
 pkgrel=0

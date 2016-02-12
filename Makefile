@@ -62,6 +62,9 @@ test-s3: local-apks sync-s3
 sync-s3:
 	s3cmd sync --acl-public alpine-ghc/ s3://alpine-ghc/
 
+sync-s3-del:
+	s3cmd sync --delete-removed --acl-public alpine-ghc/next/ s3://alpine-ghc/next/
+
 bacon: alpine-ghc
 	docker run -a stdout ghcapk:latest /bin/tar -cf - /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
 	docker build -t apkfiles -f Dockerfile.apk .

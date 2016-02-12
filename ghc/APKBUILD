@@ -109,7 +109,7 @@ makedepends="
 	automake
 	"
 
-makedepends="ghc $makedepends"
+makedepends="ghc-bootstrap $makedepends"
 
 prepare() {
 	# LLVM patches
