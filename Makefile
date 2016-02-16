@@ -53,7 +53,7 @@ local-apks: alpine-ghc/$(BACON)
 	docker run -a stdout $(ALPINENAME):latest /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
 
 rebuild-apks: alpine-ghc/$(BACON)/x86_64
-	docker run -a stdout $(ALPINENAME):latest /bin/tar -cf - /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
+	docker run -a stdout $(ALPINENAME):latest /bin/tar -cf - /home/build/aports/testing/ghc-bootstrap/APKBUILD  /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
 	docker build -t $(ALPINENAME):apkfiles -f Dockerfile.apk .
 	docker run -a stdout $(ALPINENAME):apkfiles /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
 
@@ -66,7 +66,7 @@ sync-s3-del:
 	s3cmd sync --delete-removed --acl-public alpine-ghc/next/ s3://alpine-ghc/next/
 
 bacon: alpine-ghc
-	docker run -a stdout ghcapk:latest /bin/tar -cf - /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
+	docker run -a stdout ghcapk:latest /bin/tar -cf - /home/build/aports/testing/ghc-bootstrap/APKBUILD /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
 	docker build -t apkfiles -f Dockerfile.apk .
 	-mkdir -p alpine-ghc/$(BACON)/x86_64
 	docker run -a stdout apkfiles:latest /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
