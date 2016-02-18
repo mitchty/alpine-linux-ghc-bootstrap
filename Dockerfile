@@ -8,8 +8,9 @@ RUN apk update && apk upgrade && apk add git abuild docker perl
 
 RUN echo "PACKAGER='$username <$useremail>'" >> /etc/abuild.conf
 
-ENV ghc /home/$builduser/aports/testing/ghc
-ENV ghc-bs /home/$builduser/aports/testing/ghc-bootstrap
+ENV testing /home/$builduser/aports/testing
+ENV ghc $testing/ghc
+ENV ghcbootstrap $testing/ghc-bootstrap
 # setup build user and clone alpine ports
 RUN adduser -D $builduser && \
     addgroup $builduser abuild && \
@@ -31,13 +32,13 @@ RUN perl -pi -e "s/JOBS[=]2/JOBS\=6/" /etc/abuild.conf
 RUN cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys && \
    echo /home/$builduser/packages/testing >> /etc/apk/repositories && \
    mkdir -p $ghc
-COPY ghc-bootstrap $ghc-bs
+COPY ghc-bootstrap $ghcbootstrap
 RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 RUN apk update
 USER $builduser
 
 # build ghc package via bootstrap compiler
-WORKDIR $ghc-bs
+WORKDIR $ghcbootstrap
 RUN abuild checksum && abuild -r
 
 USER root

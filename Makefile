@@ -52,8 +52,9 @@ alpine-ghc/$(BACON)/x86_64: alpine-ghc/$(BACON)
 local-apks: alpine-ghc/$(BACON)
 	docker run -a stdout $(ALPINENAME):latest /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
 
-rebuild-apks: alpine-ghc/$(BACON)/x86_64
+update-apkbuilds:
 	docker run -a stdout $(ALPINENAME):latest /bin/tar -cf - /home/build/aports/testing/ghc-bootstrap/APKBUILD  /home/build/aports/testing/ghc/APKBUILD /home/build/aports/testing/stack/APKBUILD | $(TAR) xf - --strip-components=4 -C $(PWD)
+rebuild-apks: alpine-ghc/$(BACON)/x86_64 update-apkbuilds
 	docker build -t $(ALPINENAME):apkfiles -f Dockerfile.apk .
 	docker run -a stdout $(ALPINENAME):apkfiles /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C alpine-ghc/$(BACON)
 

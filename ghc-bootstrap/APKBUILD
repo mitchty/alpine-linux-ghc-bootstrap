@@ -40,3 +40,6 @@ snapshot () {
 		scp "ghc-$pkgver-$bs_arch-unknown-linux-musl.tar.xz" /some/where || return 1
 	done
 }
+md5sums="914f4029e72584e03c8bf3aac52b5039  ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz"
+sha256sums="b0873c2992af4ec755f3909e8d77181ad501022020a3a8df795cc08d44d31c73  ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz"
+sha512sums="c734f245c9f1dbea5aca9073b0fafb97676602d11dc3f1517d5bd8103959e8bb85a1597bc8e676310893c3db86bdf03016c3d2e72c7d1cd0638f0ff90a70e41c  ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz"
