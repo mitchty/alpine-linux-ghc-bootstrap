@@ -8,8 +8,8 @@ RUN apk update
 RUN apk add ghc ghc-dev cabal stack alpine-sdk openssl-dev \
     sqlite-dev curl-dev libstdc++ && \
     cabal update && \
-    cd ~/.cabal && cp config config.prestackage && \
-    cd ~/.cabal && curl -sS 'https://www.stackage.org/nightly-2016-01-06/cabal.config?global=true' >> ${HOME}/.cabal/config
+    cd ~/.cabal && cp config config.prestackage
+RUN cd ~/.cabal && curl -sS 'https://www.stackage.org/nightly-2016-01-06/cabal.config?global=true' >> ${HOME}/.cabal/config
 
 RUN cabal install alex happy && \
     cabal install c2hs

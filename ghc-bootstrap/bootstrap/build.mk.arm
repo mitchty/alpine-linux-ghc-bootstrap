@@ -1,0 +1,14 @@
+SRC_HC_OPTS          = -H128m -O0
+SRC_CC_OPTS          = -Os
+GhcStage2HcOpts      = -O2
+GhcLibHcOpts         = -O2
+SplitObjs            = NO
+BeConservative       = YES
+HADDOCK_DOCS         = NO
+BUILD_DOCBOOK_HTML   = NO
+BUILD_DOCBOOK_PS     = NO
+BUILD_DOCBOOK_PDF    = NO
+V                    = 1
+INTEGER_LIBRARY      = integer-simple
+DYNAMIC_BY_DEFAULT   = NO
+DYNAMIC_GHC_PROGRAMS = NO
