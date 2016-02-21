@@ -48,21 +48,12 @@ run ./configure \
   --with-llc=llc
 run make -j$(grep -c processor /proc/cpuinfo) || /bin/true
 
-
-# TEMPORARY HACK make install didn't finish, it tried
-# to use ghc-pkg to install into DESTDIR
-#
-# I'll fit this into the giant patch of doom later.
-run perl -pi -e 's|INSTALLED_GHC_REAL=\$\(DESTDIR\)\$\(ghclibexecdir\)\/bin\/ghc|INSTALLED_GHC_REAL=\$\(CURDIR\)\/inplace\/bin\/ghc-stage1|g' ghc.mk
-run perl -pi -e 's|INSTALLED_GHC_PKG_REAL=\$\(DESTDIR\)\$\(ghclibexecdir\)\/bin\/ghc-pkg|INSTALLED_GHC_PKG_REAL=\$\(CURDIR\)\/utils\/ghc-pkg\/dist\/build\/tmp\/ghc-pkg|g' ghc.mk
-
 env tardir /tmp/root
 run make -j1 install STRIP_CMD=arm-linux-musleabihf-strip DESTDIR=$tardir
 
 # HACK unlit gets compiled with stage0 c compiler
 workdir /tmp/ghc-$ghc/utils/unlit
 run rm -fr dist && make GHC=/tmp/ghc-$ghc/inplace/bin/ghc-stage1 || /bin/true
-#run exit 1
 run cp /tmp/ghc-$ghc/utils/unlit/dist/build/tmp/unlit $tardir/usr/lib/arm-unknown-linux-musleabihf-ghc-7.10.3
 workdir /tmp/ghc-$ghc
 

@@ -13,7 +13,7 @@ index 42ac14e..75a7471 100644
          ------- Libraries ---------------------------------------------------
    , defFlag "L"   (Prefix addLibraryPath)
 diff --git a/ghc.mk b/ghc.mk
-index 9aa0dc3..39c8e34 100644
+index 9aa0dc3..97464b8 100644
 --- a/ghc.mk
 +++ b/ghc.mk
 @@ -386,7 +386,7 @@ else
@@ -254,6 +254,17 @@ index 9aa0dc3..39c8e34 100644
  utils/ghc-pkg/dist/package-data.mk: $(fixed_pkg_prev)
  compiler/stage1/package-data.mk:    $(fixed_pkg_prev)
  endif
+@@ -900,8 +919,8 @@ INSTALLED_PACKAGE_CONF=$(DESTDIR)$(topdir)/package.conf.d
+ # Install packages in the right order, so that ghc-pkg doesn't complain.
+ # Also, install ghc-pkg first.
+ ifeq "$(Windows_Host)" "NO"
+-INSTALLED_GHC_REAL=$(DESTDIR)$(ghclibexecdir)/bin/ghc
+-INSTALLED_GHC_PKG_REAL=$(DESTDIR)$(ghclibexecdir)/bin/ghc-pkg
++INSTALLED_GHC_REAL=$(CURDIR)/inplace/bin/ghc-stage1
++INSTALLED_GHC_PKG_REAL=$(CURDIR)/utils/ghc-pkg/dist/build/tmp/ghc-pkg
+ else
+ INSTALLED_GHC_REAL=$(DESTDIR)$(bindir)/ghc.exe
+ INSTALLED_GHC_PKG_REAL=$(DESTDIR)$(bindir)/ghc-pkg.exe
 @@ -1398,6 +1417,50 @@ endif
  	cd libraries/xhtml && ./Setup clean   --builddir=dist-bindist
  	cd libraries/xhtml && rm -f Setup Setup.exe Setup.hi Setup.o
