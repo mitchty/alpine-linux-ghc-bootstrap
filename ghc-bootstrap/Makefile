@@ -11,6 +11,7 @@ SRCS:= $(GHC_BS) $(GHC_SRC) $(CABAL_BS) $(LLVM_BS) $(POLLY_BS)
 
 DOCKER_NAME:=alpine-ghc-bootstrap
 TARGET:=ghc-$(GHC_VERSION)-$(ARCH)-unknown-linux-musl.tar.xz
+TARGETARM:=ghc-$(GHC_VERSION)-arm-unknown-linux-musleabihf.tar.xz
 
 .PHONY: clean distclean cleandocker base x86_64 arm
 
@@ -27,6 +28,8 @@ x86_64: base
 arm: base
 	TARGET=ghc-$(GHC_VERSION)-$@-unknown-linux-musl.tar.xz
 	docker build -t $(DOCKER_NAME):$@ -f bootstrap/Dockerfile.$@ . | tee make-$@-$(shell date +%s).log
+	docker run -a stdout "$(DOCKER_NAME):$@" /bin/cat "/tmp/$(TARGETARM)" > $(TARGETARM)
+
 
 $(GHC_BS):
 	curl -LO https://downloads.haskell.org/~ghc/$(GHC_VERSION)/$@
