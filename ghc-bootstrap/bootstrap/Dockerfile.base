@@ -24,9 +24,9 @@ run apt-get install -y \
       python \
       pixz
 
-# build llvm 3.6 with the same patches
+# build llvm 3.5 with the same patches
 # as alpine will use, need this for stage2 builds (and eventually arm)
-env llvm 3.6.2
+env llvm 3.5.2
 workdir /tmp
 copy llvm-$llvm.src.tar.xz /tmp/llvm.txz
 copy polly-$llvm.src.tar.xz /tmp/polly.txz
@@ -35,8 +35,8 @@ run tar xJpf /tmp/polly.txz
 copy llvm-0001-fix-shared-build.patch /tmp/llvm-0001-fix-shared-build.patch
 copy llvm-0002-musl-triple.patch /tmp/llvm-0002-musl-triple.patch
 copy llvm-0003-musl-hacks.patch /tmp/llvm-0003-musl-hacks.patch
-copy bootstrap/llvm.sh /tmp/llvm.sh
-run /tmp/llvm.sh
+copy bootstrap/llvm-3.5.2.sh /tmp/llvm.sh
+run sh -x /tmp/llvm.sh
 
 workdir /tmp
 
@@ -47,11 +47,8 @@ env arch x86_64
 copy ghc-$ghc-$arch-deb8-linux.tar.xz /tmp/ghc.txz
 run tar xJpf /tmp/ghc.txz
 workdir /tmp/ghc-$ghc
-run ./configure --prefix=/tmp/native && make -j1 install
+run ./configure --prefix=/usr && make -j1 install
 run rm -fr /tmp/ghc-$ghc
-
-env OPATH $PATH
-env PATH $PATH:/tmp/native/bin
 
 # bootstrap cabal and install alex/happy the same way apks are built
 # only globally
@@ -66,32 +63,8 @@ run cabal install --global alex happy
 workdir /tmp
 run rm -fr /tmp/cabal-install-$cabal_version
 
-# build ghc for debian with 3.6 patches applied.
-copy ghc-$ghc-src.tar.xz /tmp/ghc-src.txz
-run tar xJpf /tmp/ghc-src.txz
-workdir /tmp/ghc-$ghc
-copy bootstrap/build.mk mk/build.mk
-copy ghc-0001-no-dllsplit.patch ghc-0001-no-dllsplit.patch
-copy ghc-0002-llvm-3.6.patch ghc-0002-llvm-3.6.patch
-run patch -p1 < ghc-0001-no-dllsplit.patch
-run patch -p1 < ghc-0002-llvm-3.6.patch
-run ./configure \
-  --with-ld=ld.gold \
-  --with-readelf=eu-readelf \
-  --prefix=/usr
-run make -j$(grep -c processor /proc/cpuinfo) || make -j1
-run make -j1 install
-
-# reset PATH and our 7.10.3 should llvm 3.6 capabilities
-# rebuild cabal
-env PATH $OPATH
-env cabal_version 1.22.7.0
+# First up, install/compile the cross compiler with musl libc
+# armv7 hard float cross compiler, we basically rebuild ghc again here with
+# the cross compiler, and the llvm we built for x86_64 as well
 workdir /tmp
-copy cabal-install-$cabal_version.tar.gz /tmp/cabal.tgz
-run tar xzpf /tmp/cabal.tgz
-workdir /tmp/cabal-install-$cabal_version
-run ./bootstrap.sh --global --no-doc
-run cabal update
-run cabal install --global alex happy
-workdir /tmp
-run rm -fr /tmp/cabal-install-$cabal_version
+run git clone --depth 1 https://github.com/GregorR/musl-cross.git musl-cross

@@ -1,0 +1,35 @@
+diff --git a/ghc.mk b/ghc.mk
+index 97464b8..6048d4d 100644
+--- a/ghc.mk
++++ b/ghc.mk
+@@ -514,6 +514,8 @@ $(foreach pkg,$(PACKAGES_STAGE1),$(eval $(call fixed_pkg_dep,$(pkg),dist-install
+ # eachother, so we can configure them in parallel.
+ utils/ghc-pwd/dist-install/package-data.mk: $(fixed_pkg_prev)
+ utils/ghc-cabal/dist-install/package-data.mk: $(fixed_pkg_prev)
++utils/unlit/dist-install/package-data.mk: $(fixed_pkg_prev)
++utils/hp2hs/dist-install/package-data.mk: $(fixed_pkg_prev)
+ utils/hpc/dist-install/package-data.mk: $(fixed_pkg_prev)
+ utils/ghc-pkg/dist-install/package-data.mk: $(fixed_pkg_prev)
+ utils/hsc2hs/dist-install/package-data.mk: $(fixed_pkg_prev)
+diff --git a/utils/hp2ps/ghc.mk b/utils/hp2ps/ghc.mk
+index 64a3a6d..c784763 100644
+--- a/utils/hp2ps/ghc.mk
++++ b/utils/hp2ps/ghc.mk
+@@ -22,5 +22,4 @@ utils/hp2ps_dist_INSTALL_INPLACE = YES
+ 
+ utils/hp2ps_CC_OPTS += $(addprefix -I,$(GHC_INCLUDE_DIRS))
+ 
+-$(eval $(call build-prog,utils/hp2ps,dist,0))
+-
++$(eval $(call build-prog,utils/hp2ps,dist-install,1))
+diff --git a/utils/unlit/ghc.mk b/utils/unlit/ghc.mk
+index e947989..bb6b5ca 100644
+--- a/utils/unlit/ghc.mk
++++ b/utils/unlit/ghc.mk
+@@ -16,5 +16,4 @@ utils/unlit_dist_TOPDIR  = YES
+ utils/unlit_dist_INSTALL = YES
+ utils/unlit_dist_INSTALL_INPLACE = YES
+ 
+-$(eval $(call build-prog,utils/unlit,dist,0))
+-
++$(eval $(call build-prog,utils/unlit,dist-install,1))

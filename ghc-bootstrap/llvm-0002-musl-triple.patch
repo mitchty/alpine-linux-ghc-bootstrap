@@ -70,18 +70,5 @@ index dbacd4d..b330be5 100644
             isTargetWindows();
    }
    bool isTargetAndroid() const {
-diff --git a/lib/Target/ARM/ARMTargetMachine.cpp b/lib/Target/ARM/ARMTargetMachine.cpp
-index 7a8181b..ce5ceb9 100644
---- a/lib/Target/ARM/ARMTargetMachine.cpp
-+++ b/lib/Target/ARM/ARMTargetMachine.cpp
-@@ -87,6 +87,8 @@ computeTargetABI(const Triple &TT, StringRef CPU,
-     case llvm::Triple::GNUEABIHF:
-     case llvm::Triple::EABIHF:
-     case llvm::Triple::EABI:
-+    case llvm::Triple::MuslEABI:
-+    case llvm::Triple::MuslEABIHF:
-       TargetABI = ARMBaseTargetMachine::ARM_ABI_AAPCS;
-       break;
-     case llvm::Triple::GNU:
 --
 2.1.4

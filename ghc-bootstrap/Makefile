@@ -1,6 +1,6 @@
 CABAL_VERSION:=1.22.7.0
 GHC_VERSION:=7.10.3
-LLVM_VERSION:=3.6.2
+LLVM_VERSION:=3.5.2
 ARCH:=x86_64
 GHC_BS:=ghc-$(GHC_VERSION)-$(ARCH)-deb8-linux.tar.xz
 GHC_SRC:=ghc-$(GHC_VERSION)-src.tar.xz
@@ -15,9 +15,11 @@ TARGETARM:=ghc-$(GHC_VERSION)-arm-unknown-linux-musleabihf.tar.xz
 
 .PHONY: clean distclean cleandocker base x86_64 arm
 
-all: $(SRCS) arm x86_64
+all: arm x86_64
 
-base:
+dl: $(SRCS)
+
+base: dl
 	docker build -t $(DOCKER_NAME):$@ -f bootstrap/Dockerfile.$@ . | tee make-$@-$(shell date +%s).log
 
 x86_64: base
@@ -42,6 +44,10 @@ $(CABAL_BS):
 
 $(LLVM_BS):
 	curl -LO http://llvm.org/releases/$(LLVM_VERSION)/$@
+#	http://llvm.org/releases/3.5.2/llvm-3.5.2.src.tar.xz
+#	curl -L -o $@.gz 'https://api.github.com/repos/llvm-mirror/llvm/tarball/release_35'
+#	gzcat $@.gz | xz - -c > $@
+#	rm $@.gz
 
 $(POLLY_BS):
 	curl -LO http://llvm.org/releases/$(LLVM_VERSION)/$@
