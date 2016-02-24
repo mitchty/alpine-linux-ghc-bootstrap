@@ -51,18 +51,8 @@ run make -j$(grep -c processor /proc/cpuinfo) || /bin/true
 env tardir /tmp/root
 run make -j1 install STRIP_CMD=arm-linux-musleabihf-strip DESTDIR=$tardir
 
-# HACK unlit gets compiled with stage0 c compiler
-workdir /tmp/ghc-$ghc/utils/unlit
-run rm -fr dist && make GHC=/tmp/ghc-$ghc/inplace/bin/ghc-stage1 || /bin/true
-run cp /tmp/ghc-$ghc/utils/unlit/dist/build/tmp/unlit $tardir/usr/lib/arm-unknown-linux-musleabihf-ghc-7.10.3
-workdir /tmp/ghc-$ghc
-
-# TODO find a better way to get unlit/hp2ps to build right
-# for now screw it just remove hp2ps we don't need it.
-
 # remove target prefix from stage2 binaries
 workdir $tardir/usr/bin
-run rm $tardir/usr/bin/arm-unknown-linux-musleabihf-hp2ps
 run (for i in arm-unknown-linux-musleabihf-* ; do ln -s $i ${i#arm-unknown-linux-musleabihf-} ; done )
 workdir $tardir
 copy bootstrap/settings.arm /tmp/settings
