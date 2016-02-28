@@ -19,9 +19,9 @@ llvm_builddir=/tmp/build
 polly_orig_srcdir="/tmp/polly-$llvm_version.src"
 
 cd "$llvm_srcdir"
-for i in /tmp/llvm*.patch; do
-	patch -s -p1 -N -i $i || return 1
-done
+# for i in /tmp/llvm*.patch; do
+# 	patch -s -p1 -N -i $i || return 1
+# done
 
 _cmake_flags="\
 	-DCMAKE_BUILD_TYPE=Release \

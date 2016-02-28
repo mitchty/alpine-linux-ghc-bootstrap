@@ -27,6 +27,6 @@
  ("target has .ident directive", "True"),
  ("target has subsections via symbols", "False"),
  ("Unregisterised", "NO"),
- ("LLVM llc command", "llc-3.6"),
- ("LLVM opt command", "opt-3.6")
+ ("LLVM llc command", "/usr/lib/ghc/llc-3.5"),
+ ("LLVM opt command", "/usr/lib/ghc/opt-3.5")
  ]

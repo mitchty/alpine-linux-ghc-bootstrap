@@ -327,17 +327,19 @@ build_llvm() {
 		(
 			export LD_LIBRARY_PATH="$srcdir/tmp/lib:$LD_LIBRARY_PATH"
 			make llvm-tblgen || return 1
-			make || return 1
+			make llc opt
+#			make || return 1
 		) || return 1
 		export CFLAGS="${OCFLAGS}"
 		export CXXFLAGS="${OCXXFLAGS}"
 
 		# install portion
-		make -j1 DESTDIR="$pkgdir" install || return 1
+#		make -j1 DESTDIR="$pkgdir" install || return 1
 
 		# Move opt/llc to $srcdir temporarily
 		for x in opt llc; do
-			install -Dm755 "$pkgdir/usr/local/bin/${x}" "$srcdir/${x}${suffix}" || return 1
+			install -Dm755 $(find . -name ${x} -type f) "$srcdir/${x}${suffix}" || return 1
+#			install -Dm755 "$pkgdir/usr/local/bin/${x}" "$srcdir/${x}${suffix}" || return 1
 		done
 
 		# Remove everything make install put into $pkgdir
@@ -374,8 +376,8 @@ build() {
 	cd "$_builddir"
 	if [ -z "$BOOTSTRAP" ]; then
 		build_llvm || return 1
-		build_cabal || return 1
-		build_ghc || return 1
+#		build_cabal || return 1
+#		build_ghc || return 1
 	fi
 }
 

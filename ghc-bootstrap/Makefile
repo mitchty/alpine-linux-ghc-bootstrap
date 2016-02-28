@@ -13,23 +13,25 @@ DOCKER_NAME:=alpine-ghc-bootstrap
 TARGET:=ghc-$(GHC_VERSION)-$(ARCH)-unknown-linux-musl.tar.xz
 TARGETARM:=ghc-$(GHC_VERSION)-arm-unknown-linux-musleabihf.tar.xz
 
-.PHONY: clean distclean cleandocker base x86_64 arm
+.PHONY: clean distclean cleandocker base x86_64 armhf
 
-all: arm x86_64
+all: armhf x86_64
 
 dl: $(SRCS)
 
 base: dl
-	docker build -t $(DOCKER_NAME):$@ -f bootstrap/Dockerfile.$@ . | tee make-$@-$(shell date +%s).log
+	docker build -t $(DOCKER_NAME):$@ -f bootstrap/Dockerfile . | tee make-$@-$(shell date +%s).log
 
-x86_64: base
+x86_64: #base
 	TARGET=ghc-$(GHC_VERSION)-$@-unknown-linux-musl.tar.xz
-	docker build -t $(DOCKER_NAME):$@ -f bootstrap/Dockerfile.$@ . | tee make-$@-$(shell date +%s).log
-	docker run -a stdout "$(DOCKER_NAME):$@" /bin/cat "/tmp/$(TARGET)" > $(TARGET)
+	docker build -t $(DOCKER_NAME):$@ -f bootstrap/$@/Dockerfile . | tee make-$@-$(shell date +%s).log
+	docker run -a stdout "$(DOCKER_NAME):$@" /bin/cat "/tmp/ghc-$(GHC_VERSION)-$(ARCH)-pc-linux-musl.tar.xz" > $(TARGET)
 
-arm: base
+armhf: base
+	@echo arms not ready yet
+	exit 1
 	TARGET=ghc-$(GHC_VERSION)-$@-unknown-linux-musl.tar.xz
-	docker build -t $(DOCKER_NAME):$@ -f bootstrap/Dockerfile.$@ . | tee make-$@-$(shell date +%s).log
+	docker build -t $(DOCKER_NAME):$@ -f bootstrap/$@/Dockerfile . | tee make-$@-$(shell date +%s).log
 	docker run -a stdout "$(DOCKER_NAME):$@" /bin/cat "/tmp/$(TARGETARM)" > $(TARGETARM)
 
 
@@ -44,10 +46,6 @@ $(CABAL_BS):
 
 $(LLVM_BS):
 	curl -LO http://llvm.org/releases/$(LLVM_VERSION)/$@
-#	http://llvm.org/releases/3.5.2/llvm-3.5.2.src.tar.xz
-#	curl -L -o $@.gz 'https://api.github.com/repos/llvm-mirror/llvm/tarball/release_35'
-#	gzcat $@.gz | xz - -c > $@
-#	rm $@.gz
 
 $(POLLY_BS):
 	curl -LO http://llvm.org/releases/$(LLVM_VERSION)/$@

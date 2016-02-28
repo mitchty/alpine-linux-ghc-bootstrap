@@ -8,7 +8,8 @@ RUN apk update && apk upgrade && apk add git abuild docker perl
 
 RUN echo "PACKAGER='$username <$useremail>'" >> /etc/abuild.conf
 
-ENV ghc /home/$builduser/aports/testing/ghc
+ENV testing /home/$builduser/aports/testing
+ENV ghc $testing/ghc
 # setup build user and clone alpine ports
 RUN adduser -D $builduser && \
     addgroup $builduser abuild && \
@@ -25,29 +26,46 @@ RUN git config --global user.name '$username' && \
     mkdir -p $ghc && \
     abuild-keygen -a -i
 
-WORKDIR $ghc
 USER root
 RUN perl -pi -e "s/JOBS[=]2/JOBS\=6/" /etc/abuild.conf
 RUN cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys && \
-   echo /home/$builduser/packages/testing >> /etc/apk/repositories && \
-   mkdir -p $ghc
-COPY ghc $ghc
-RUN chown -R $builduser:abuild $ghc
+   echo /home/$builduser/packages/testing >> /etc/apk/repositories
+run mkdir -p $ghc
+
+ENV ghcllvm35 $testing/ghc-llvm35
+run install -d $ghcllvm35
+COPY ghc-llvm35 $ghcllvm35
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 RUN apk update
 USER $builduser
-#ENV bs_url http://bsd.lan:8000/ghc-x86_64-linux-musl-7.10.2.tar.xz
-ENV bs_url https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10/ghc-x86_64-linux-musl-7.10.2.tar.xz
 
-# Build via the bootstrap compiler first
-RUN /usr/bin/env BOOTSTRAP=$bs_url abuild checksum && \
-    /usr/bin/env BOOTSTRAP=$bs_url abuild -r
+WORKDIR $ghcllvm35
+RUN abuild checksum && abuild -r
 
 USER root
 RUN apk update
 
+ENV ghcbootstrap $testing/ghc-bootstrap
+COPY ghc-bootstrap $ghcbootstrap
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
+RUN apk update
+USER $builduser
+
+# build ghc package via bootstrap compiler
+WORKDIR $ghcbootstrap
+RUN abuild checksum && abuild -r
+
+USER root
+RUN apk update
+
+run exit 1
+COPY ghc $ghc
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
+RUN apk update
 USER $builduser
 WORKDIR $ghc
-RUN abuild checksum && abuild -r
+RUN abuild checksum 
+run abuild -r
 
 USER root
 RUN apk update
@@ -57,7 +75,7 @@ ENV stack /home/$builduser/aports/testing/stack
 USER root
 RUN mkdir -p $stack
 COPY stack $stack
-RUN chown -R $builduser:abuild $stack
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 USER $builduser
 WORKDIR $stack
 RUN abuild checksum && abuild -r
