@@ -38,6 +38,7 @@ dev_depends="
 # ghc build dependencies
 makedepends="
 	$dev_depends
+	ghc-bootstrap
 	"
 
 _builddir="$srcdir/$pkgname-$pkgver"
@@ -47,9 +48,9 @@ source="
 	https://www.haskell.org/ghc/dist/$pkgver/ghc-$apkgver-src.tar.bz2
 	"
 
-prepare() {
+#prepare() {
 	# INSERT GHC PATCHES HERE SOMEDAY
-}
+#}
 
 ghc_llvm_opts=" -fllvm "
 
@@ -70,6 +71,8 @@ build() {
 	cp mk/build.mk.sample mk/build.mk
 	echo "SRC_HC_OPTS += -fPIC" >> mk/build.mk
 	echo "INTEGER_LIBRARY = integer-gmp2" >> mk/build.mk
+	echo "BuildFlavour    = perf-llvm" >> mk/build.mk
+	echo "GhcProfiled     = YES" >> mk/build.mk
 	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc \
@@ -77,14 +80,16 @@ build() {
 		--infodir=/usr/share/info \
 		--localstatedir=/var \
 		--with-ld=ld.gold \
-		--with-llc=${llc} \
-		--with-opt=${opt} || return 1
+		--with-llc=/usr/lib/ghc/llc-3.5 \
+		--with-opt=/usr/lib/ghc/opt-3.5 || return 1
 	make || return 1
 }
 
 dev() {
 	depends="$dev_depends"
+	cd "$_builddir"
 	pkgdesc="Packages necessary for general ghc development"
+	install -Dm644 LICENSE "$subpkgdir/usr/share/licenses/$subpkgname/LICENSE" || return 1
 }
 
 package() {

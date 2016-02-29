@@ -33,20 +33,6 @@ run ./configure --prefix=/usr && \
 make -j1 install && \
 rm -fr /tmp/ghc-$ghc
 
-# HACK unlit/hp2ps gets compiled with stage0 c compiler
-# bootstrap cabal and install alex/happy the same way apks are built
-# only globally
-# env cabal_version 1.22.7.0
-# workdir /tmp
-# copy cabal-install-$cabal_version.tar.gz /tmp/cabal.tgz
-# run tar xzpf /tmp/cabal.tgz && \
-#     cd /tmp/cabal-install-$cabal_version && \
-#     ./bootstrap.sh --global --no-doc && \
-#     cabal update && \
-#     cabal install --global alex happy
-
-# build llvm 3.5.2 with the same patches
-# as alpine will use, need this for stage2 builds (and eventually arm)
 env llvm 3.5.2
 workdir /tmp
 copy llvm-$llvm.src.tar.xz /tmp/llvm.txz
@@ -64,9 +50,7 @@ workdir /tmp
 copy ghc-$ghc-src.tar.xz /tmp/ghc-src.txz
 run tar xJpf /tmp/ghc-src.txz
 workdir /tmp/ghc-$ghc
-#run exit 1
-#copy bootstrap/$arch/build.mk mk/build.mk
-copy bootstrap/bootstrap.patch bootstrap.patch
+copy bootstrap/$arch/bootstrap.patch bootstrap.patch
 run patch -p1 < bootstrap.patch
 run cp mk/build.mk.sample mk/build.mk
 run echo "BuildFlavour         = quick-llvm" >> mk/build.mk && \

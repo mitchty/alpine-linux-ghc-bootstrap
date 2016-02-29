@@ -1,14 +1,10 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 #
-# Note, this ONLY compiles llvm for opt/llc and renames the binaries
-# to ghc-opt-$pkgver and ghc-llc-$pkgver respectively.
+# Note, this ONLY compiles llvm for opt/llc and moves the
+# suffixed binaries to /usr/lib/ghc
 #
-# This allows the ghc port to use the correct llvm for its purposes
-#
-# This is shamelessly pilfered from what main/llvm does mostly.
-#
-# Caveat being it produces static binaries.
+# This allows the ghc/ghc-bootstrap portx to use the correct llvm.
 _pkgname=llvm
 llvm_major=3.7
 llvm_version=${llvm_major}.1
@@ -20,7 +16,7 @@ pkgver=$llvm_version
 pkgrel=0
 pkgdesc="ghc required llvm binaries"
 url="n/a"
-arch="x86_64"
+arch="x86_64 armhf"
 license="UIO-NCSA"
 depends=""
 install=""
@@ -81,7 +77,7 @@ _cmake_flags="\
         -DLLVM_INCLUDE_EXAMPLES=NO \
         -DLIBXML2_INCLUDE_DIR=/usr/include/libxml2 \
         -DCMAKE_INSTALL_PREFIX=/usr \
-        -DLLVM_TARGETS_TO_BUILD='X86;ARM' \
+        -DLLVM_TARGETS_TO_BUILD='all' \
         -DLLVM_BUILD_EXTERNAL_COMPILER_RT=NO \
         -DBUILD_SHARED_LIBS=NO \
         -DLLVM_EXTERNAL_POLLY_BUILD=NO \
@@ -152,11 +148,8 @@ build() {
 
                 (
                         export LD_LIBRARY_PATH="$srcdir/tmp/lib:$LD_LIBRARY_PATH"
-                        make llvm-tblgen || return 1
-                        make llc opt || return 1
+                        make llvm-tblgen llc opt|| return 1
                 ) || return 1
-                export CFLAGS="${OCFLAGS}"
-                export CXXFLAGS="${OCXXFLAGS}"
         ) || return 1
 }
 

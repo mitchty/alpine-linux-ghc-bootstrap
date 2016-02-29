@@ -71,14 +71,24 @@ RUN abuild checksum && abuild -r
 USER root
 RUN apk update
 
-run exit 1
-COPY ghc $ghc
+COPY ghc-7.10 $ghc
 RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 RUN apk update
 USER $builduser
 WORKDIR $ghc
 RUN abuild checksum && abuild -r
 
+USER root
+RUN apk update
+
+ENV cabal /home/$builduser/aports/testing/cabal
+USER root
+RUN mkdir -p $cabal
+COPY cabal $cabal
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
+USER $builduser
+WORKDIR $cabal
+RUN abuild checksum && abuild -r
 USER root
 RUN apk update
 
