@@ -7,15 +7,8 @@ apkgver=7.10.3b
 pkgver=$(echo ${apkgver} | tr -d '[a-z]')
 pkgrel=1
 url="http://haskell.org"
-subpackages="$pkgname-doc $pkgname-dev cabal"
+subpackages="$pkgname-doc $pkgname-dev"
 arch="x86_64"
-# Subpkg tool versions
-llvm_major=3.5
-llvm_version=${llvm_major}.2
-cabal_version=1.22.7.0
-suffix="-${llvm_major}"
-opt=opt${suffix}
-llc=llc${suffix}
 # Note ghc's license is basically bsd3. If you'd like to know more visit:
 # https://www.haskell.org/ghc/license
 # https://ghc.haskell.org/trac/ghc/wiki/Licensing
@@ -30,7 +23,7 @@ llc=llc${suffix}
 #
 # It is ONLY needed for opt and llc respectively, llvm is not fully installed this way.
 license="custom:bsd3"
-depends="bash gmp-dev libffi musl zlib ncurses perl gcc"
+depends="bash gmp-dev libffi musl zlib ncurses perl gcc ghc-llvm-3.5"
 install=""
 dev_depends="
 	$depends
@@ -47,30 +40,6 @@ makedepends="
 	$dev_depends
 	"
 
-# llvm build dependencies
-makedepends="
-	$depends
-	$makedepends
-	perl
-	cmake
-	make
-	flex
-	bison
-	groff
-	musl-dev
-	binutils-dev
-	libffi-dev
-	zlib-dev
-	ncurses-dev
-	python
-	python-dev
-	gmp-dev
-	clang
-	git
-	libtool
-	autoconf
-	automake
-	"
 _builddir="$srcdir/$pkgname-$pkgver"
 
 # ghc source
@@ -78,59 +47,13 @@ source="
 	https://www.haskell.org/ghc/dist/$pkgver/ghc-$apkgver-src.tar.bz2
 	"
 
-# cabal source
-source="
-	$source
-	https://www.haskell.org/cabal/release/cabal-install-${cabal_version}/cabal-install-${cabal_version}.tar.gz
-	"
+prepare() {
+	# INSERT GHC PATCHES HERE SOMEDAY
+}
 
-# llvm source
-source="
-	$source
-	llvm-0001-fix-shared-build.patch
-	llvm-0002-musl-triple.patch
-	llvm-0003-musl-hacks.patch
-	llvm-$llvm_version.tar.gz::https://api.github.com/repos/llvm-mirror/llvm/tarball/release_35@215010
-	http://llvm.org/releases/$llvm_version/polly-$llvm_version.src.tar.xz
-	"
-
-llvm_srcdir="$srcdir/llvm-mirror-llvm-7892e56"
-llvm_builddir="$srcdir/build"
-polly_orig_srcdir="$srcdir"/polly-$llvm_version.src
-
-# bootstrap compiler is just a giant tarball, so no need to patch anything
-if [ -z "$BOOTSTRAP" ]; then
-	msg "Building normal ghc"
-	makedepends="ghc $makedepends"
-
-	prepare() {
-		# LLVM patches
-		msg "Patching llvm"
-		cd "$llvm_srcdir"
-		update_config_sub || return 1
-		sed -i -e '/case "\${UNAME_MACHINE}:\${UNAME_SYSTEM}:\${UNAME_RELEASE}:\${UNAME_VERSION}" in/i \' -e 'if [ x != "x$CBUILD" ]; then echo "$CBUILD"; exit; fi' autoconf/config.guess || return 1
-		for i in $source; do
-			case $i in
-				llvm-*.patch)
-					msg "Applying $i..."
-					patch -s -p1 -N -i "$srcdir"/$i || return 1
-					;;
-			esac
-		done
-	}
-else
-	msg "Building bootstrap ghc"
-	# $BOOTSTRAP if set needs to be the tar.gz cross compiler generated off of
-	# a glibc system.
-	pkgdesc="$pkgdesc (bootstrapped)"
-	_builddir="$srcdir"
-	subpackages=""
-	source="$BOOTSTRAP"
-	makedepends=""
-fi
+ghc_llvm_opts=" -fllvm "
 
 # Stupid simple test to ensure the ghc we're using basically works.
-ghc_llvm_opts=" -fllvm -pgmlc $llc -pgmlo $opt "
 basic_check() {
 	cd "$_builddir"
 	echo 'main = putStrLn "ok"'> test.hs || return 1
@@ -139,323 +62,35 @@ basic_check() {
 	rm test test.o test.hi test.hs || return 1
 }
 
-# Generate our build.mk file.
-#
-# TODO: Get all the haddock documentation building. I'll be honest, that is
-# a super low priority. Thinking I wait until someone asks for it, I bet
-# most people don't even notice and use online references.
-generate_build_mk() {
-	cat > mk/build.mk << "FIN"
-SRC_HC_OPTS          += -optl-pthread
-SRC_HC_OPTS          += -H64m -fPIC
-SRC_CC_OPTS          += -O2 -fPIC
-GhcLibHcOpts         += -fPIC
-GhcRtsCcOpts         += -O2 -fPIC
-GhcHcOpts            += -Rghc-timing
-SplitObjs             = YES
-STRIP                 = :
-V                     = 1
-BeConservative        = YES
-BUILD_DOCBOOK_HTML    = NO
-BUILD_DOCBOOK_PS      = NO
-BUILD_DOCBOOK_PDF     = NO
-HADDOCK_DOCS          = NO
-FIN
-
-	for x in SRC_HC_OPTS GhcLibHcOpts GhcHcOpts; do
-		echo "${x} += ${ghc_llvm_opts}" >> mk/build.mk
-	done
-}
-
 _ghc_build_tmp="$_builddir/tmp"
-_ghc_build_sandbox="$_ghc_build_tmp/.cabal-sandbox"
-export PATH=$PATH:"${_ghc_build_tmp}/bin"
 
-# We need happy and alex to build ghc, so install those via
-# cabal for now.
-#
-# TODO: build these as separate sub packages maybe?
-# this build script is already crazy enough as it is.
-sandbox_prerequisites() {
-	msg "Building happy/alex for ghc compile"
-	mkdir -p "$_ghc_build_tmp"
-	cd "$_ghc_build_tmp"
-	(
-		export HOME="$_ghc_build_tmp"
-		cabal update || return 1
-		cabal sandbox init || return 1
-		cabal install happy alex || return 1
-	) || return 1
-}
-
-# Build ghc with the llvm we build earlier into $pkgdir
-build_ghc() {
-	# By this time we have llvm and cabal installed into $pkgdir
-	# ensure we use them by putting them at the start of PATH
-	(
-		export PATH="$srcdir:${PATH}"
-		basic_check || return 1
-		sandbox_prerequisites
-		cd ${srcdir}/ghc-7.10.3
-		generate_build_mk
-		# ensure we use the right gmp library
-		# maybe make gmp a build option?
-		mv libraries/integer-gmp integer-gmp.old || return 1
-		ln -s integer-gmp2 libraries/integer-gmp || return 1
-		./configure \
-			LD=ld.gold \
-			--prefix=/usr \
-			--sysconfdir=/etc \
-			--mandir=/usr/share/man \
-			--infodir=/usr/share/info \
-			--localstatedir=/var \
-			--with-llc=${llc} \
-			--with-opt=${opt} || return 1
-		make $MAKEOPTS || return 1
-	) || return 1
-}
-
-# Build cabal via bootstrap.sh and install it into $srcdir
-# the subpkg function will yoink the binary from there into $subpkgdir
-#
-# We set EXTRA_BUILD_OPTS to build a static binary via Setup so
-# we can make a fully static cabal binary.
-_builddir_cabal="$srcdir/cabal-install-${cabal_version}"
-build_cabal() {
-	cd "$_builddir_cabal"
-	(
-		export HOME="$_builddir_cabal"
-		export PATH="$_builddir_cabal/.cabal-sandbox/bin:$srcdir:${PATH}"
-		export NO_DOCUMENTATION=1
-		./bootstrap.sh --sandbox || return 1
-		export EXTRA_BUILD_OPTS="--ghc-option=-optl=-static --ghc-option=-optl=-pthread --ghc-option=-fPIC --ghc-option=-fllvm --ghc-option=-pgmlo=$opt --ghc-option=-pgmlc=$llc"
-		./bootstrap.sh --sandbox || return 1
-		install -m755 "$_builddir_cabal/.cabal-sandbox/bin/cabal" "$srcdir/cabal" || return 1
-	) || return 1
-}
-
-# LLVM related
-
-# All our cmake flags, note that this is literally ONLY llvm.
-# todo maybe for future is include polly for the optimizer
-_cmake_flags="\
-	-DCMAKE_BUILD_TYPE=Release \
-	-DCMAKE_VERBOSE_MAKEFILE=NO \
-	-DLLVM_DEFAULT_TARGET_TRIPLE=$CBUILD \
-	-DLLVM_HOST_TRIPLE=$CHOST \
-	-DLLVM_BINUTILS_INCDIR=/usr/include \
-	-DLLVM_ENABLE_ASSERTIONS=NO \
-	-DLLVM_ENABLE_LIBCXX=NO \
-	-DLLVM_ENABLE_PIC=YES \
-	-DLLVM_ENABLE_ZLIB=YES \
-	-DLLVM_ENABLE_RTTI=YES \
-	-DLLVM_BUILD_EXAMPLES=NO \
-	-DLLVM_INCLUDE_EXAMPLES=NO \
-	-DLIBXML2_INCLUDE_DIR=/usr/include/libxml2 \
-	-DCMAKE_INSTALL_PREFIX=/usr \
-	-DLLVM_TARGETS_TO_BUILD='X86;ARM' \
-	-DLLVM_BUILD_EXTERNAL_COMPILER_RT=NO \
-	-DBUILD_SHARED_LIBS=NO \
-	-DLLVM_EXTERNAL_POLLY_BUILD=NO \
-	-DLINK_POLLY_INTO_TOOLS=NO \
-	-DLLVM_BUILD_DOCS=NO \
-	-DLLVM_BUILD_TESTS=NO \
-	-DLLVM_ENABLE_CXX1Y=NO \
-	-DLLVM_ENABLE_FFI=YES \
-	-DLLVM_ENABLE_SPHINX=NO \
-	-DLLVM_ENABLE_TERMINFO=YES \
-	-DWITH_POLLY=YES \
-	-DLLVM_INCLUDE_EXAMPLES=NO \
-	-DLLVM_INCLUDE_TESTS=NO \
-	-DPOLLY_ENABLE_GPGPU_CODEGEN=NO \
-	"
-
-# This NEEDs to run first before cabal or ghc builds
-#
-# Reason being, while we build and install all of llvm for now,
-# basically I nuke the entire install and move opt/llc to their
-# new binary names as they are just static binaries.
-#
-# While this inflates the final size a skosh, maybe ~10 megs
-# over using a shared library it really saves having to edit
-# binary rpaths and whtnot to point llc/opt to the right shared
-# library. Which drove me batty so static binaries it is note
-# this is just -static in the cmake invocation.
-srcdir_polly="$llvm_srcdir"/tools/polly
-
-build_llvm() {
-	mv "$srcdir"/polly-$llvm_version.src "$srcdir_polly" || return 1
-
-	# Note, isl is now too new for 3.5.2 in alpine linux.
-	# compile the right version into $srcdir so we can use polly
-	build_isl "$srcdir_polly" || return 1
-	(
-		OCFLAGS="${CFLAGS}"
-		OCXXFLAGS="${CXXFLAGS}"
-		unset CFLAGS
-		unset CXXFLAGS
-
-		test -z "${OCFLAGS}" && OCFLAGS="-O3"
-		test -z "${OCXXFLAGS}" && OCXXFLAGS="-O3"
-
-		cflags="${OCFLAGS} -DNDEBUG -I$srcdir/tmp/include"
-		cxxflags="${OCXXFLAGS} -DNDEBUG -fno-devirtualize"
-
-		export CBUILD
-
-		ffi_include_dir="$(pkg-config --cflags-only-I libffi | sed 's|^-I||g')"
-
-		cflags="${OCFLAGS} -DNDEBUG"
-		cxxflags="${OCXXFLAGS} -DNDEBUG"
-		CC="clang"
-		CXX="clang++"
-
-		msg "Compiling llvm"
-		mkdir -p "${llvm_builddir}"
-		cd "${llvm_builddir}"
-		cmake -G "Unix Makefiles" -Wno-dev ${_cmake_final_flags} \
-			-DCMAKE_C_COMPILER="${CC}" \
-			-DCMAKE_CXX_COMPILER="${CXX}" \
-			-DCMAKE_C_FLAGS_RELEASE="${cflags}" \
-			-DCMAKE_CXX_FLAGS_RELEASE="${cxxflags}" \
-			-DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS} -L$srcdir/tmp/lib -static" \
-			-DCMAKE_SHARED_LINKER_FLAGS="${LDFLAGS}" \
-			-DFFI_INCLUDE_DIR="$ffi_include_dir" \
-			-DCMAKE_PREFIX_PATH="$srcdir/tmp" \
-			"${llvm_srcdir}" || return 1
-
-		(
-			export LD_LIBRARY_PATH="$srcdir/tmp/lib:$LD_LIBRARY_PATH"
-			make llvm-tblgen || return 1
-			make llc opt
-#			make || return 1
-		) || return 1
-		export CFLAGS="${OCFLAGS}"
-		export CXXFLAGS="${OCXXFLAGS}"
-
-		# install portion
-#		make -j1 DESTDIR="$pkgdir" install || return 1
-
-		# Move opt/llc to $srcdir temporarily
-		for x in opt llc; do
-			install -Dm755 $(find . -name ${x} -type f) "$srcdir/${x}${suffix}" || return 1
-#			install -Dm755 "$pkgdir/usr/local/bin/${x}" "$srcdir/${x}${suffix}" || return 1
-		done
-
-		# Remove everything make install put into $pkgdir
-		rm -fr "$pkgdir/usr/local" || return 1
-	) || return 1
-}
-
-# isl is too new in newer versions of alpine linux, but to build llvm with
-# polly we need it, so build that into $srcdir/tmp so we can build llvm
-# with polly optimizations.
-build_isl() {
-	msg "building isl"
-	tmp="$srcdir/tmp"
-	install -d ${tmp} || return 1
-	isl_srcdir="$srcdir/isl-$isl_version"
-	isl_srcdir="$tmp/isl"
-	cloog_srcdir="$tmp/cloog"
-	# export ISL_DIR="$isl_srcdir"
-	# export CLOOG_DIR="$cloog_srcdir"
-	cd "$srcdir_polly/utils"
-	./checkout_cloog.sh ${tmp} || return 1
-	cd "$isl_srcdir"
-	./configure --build=$CBUILD \
-		--host=$CHOST \
-		--prefix=$tmp || return 1
-	make || return 1
-	make -j1 INSTALL="install -D"	 install || return 1
-}
-
-# In short, we build:
-# llvm for opt/llc at the highest working version for the ghc we're building
-# cabal via bootstrap.sh so we can build ghc
 build() {
 	cd "$_builddir"
-	if [ -z "$BOOTSTRAP" ]; then
-		build_llvm || return 1
-#		build_cabal || return 1
-#		build_ghc || return 1
-	fi
+	basic_check || return 1
+	cp mk/build.mk.sample mk/build.mk
+	echo "SRC_HC_OPTS += -fPIC" >> mk/build.mk
+	echo "INTEGER_LIBRARY = integer-gmp2" >> mk/build.mk
+	./configure \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--mandir=/usr/share/man \
+		--infodir=/usr/share/info \
+		--localstatedir=/var \
+		--with-ld=ld.gold \
+		--with-llc=${llc} \
+		--with-opt=${opt} || return 1
+	make || return 1
 }
 
-# Install all packages that aren't *technically* required to run ghc/ghci
-# that said, without this, jack and squat will generally compile.
-#
-# This subpackage also includes the "correct" llc and opt we compiled earlier.
 dev() {
 	depends="$dev_depends"
-	pkgdesc="Packages necessary for ghc development"
-	install -d "$subpkgdir/usr/bin" || return 1
-	for x in opt llc; do
-		lhs="$srcdir/${x}${suffix}"
-		rhs="$subpkgdir/usr/bin/${x}${suffix}"
-		install -m755 "$lhs" "$rhs" || return 1
-	done
+	pkgdesc="Packages necessary for general ghc development"
 }
 
-# Install cabal here as well.
-cabal() {
-	pkgrel=0
-	pkgver=${cabal_version}
-	# TODO: Remove this if/when upstreamed into Alpine Linux
-	# only here for my older packages
-	replaces=cabal-install
-	# /TODO
-	depends=""
-	pkgdesc="The Haskell Cabal"
-	install -Dm755 "$srcdir/cabal" "$subpkgdir/usr/bin/cabal" || return 1
-}
-
-# Nothing special here outside of noting that ghc doesn't play nice with pie executables
-# on alpine linux. Until https://ghc.haskell.org/trac/ghc/ticket/9007 is fixed
-# and ghc can emit pie sanely we need to ensure that -nopie is always used.
-package_normal() {
+package() {
 	cd "$_builddir"
 	make -j1 DESTDIR="$pkgdir" install || return 1
 	settings=$(find "$pkgdir" -name settings -type f)
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
-}
-
-# Basically package_normal does what package() would do if we didn't have to
-# deal with bootstrap build support.
-#
-# But if we're bootstrapping from a cross compiler we just take that
-# note, all it is is a tar.xz of make install DESTDIR=tarballdir
-# and move it into place to make a pseudo ghc package.
-package() {
-	if [ -z "$BOOTSTRAP" ]; then
-		package_normal || return 1
-	else
-		cd "$_builddir"
-		install -d "$pkgdir" || return 1
-		mv usr "$pkgdir" || return 1
-		# Ensure our bootstrap compiler is setup the way it needs to be to be able to run
-		perl -pi -e 's/\"llc\"/\"'"${llc}"'\"/' "$settings" || return 1
-		perl -pi -e 's/\"opt\"/\"'"${opt}"'\"/' "$settings" || return 1
-	fi
 	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
 }
-md5sums="775c6b23fd863751fae1074d46eefb84  ghc-7.10.3b-src.tar.bz2
-12f26ad8585a17a50cdde1a0ea7556d3  cabal-install-1.22.7.0.tar.gz
-0947294a8c83c8d7f857dfc16204c4eb  llvm-0001-fix-shared-build.patch
-e1e37cc0dcfc69f1e8b1b89465452682  llvm-0002-musl-triple.patch
-056178d87918d531f531b1b765a59e7c  llvm-0003-musl-hacks.patch
-f051162c7a78a88509c152323a8c0839  llvm-3.5.2.tar.gz
-840bb963ac20ac0638822b7c737f78c6  polly-3.5.2.src.tar.xz"
-sha256sums="b0bb177b8095de6074e5a3538e55fd1fc187dae6eb6ae36b05582c55f7d2db6f  ghc-7.10.3b-src.tar.bz2
-b30fd14f20fdd11b028cba68fefeed7eeadcacf919e7c29bc4d7289a656d19f3  cabal-install-1.22.7.0.tar.gz
-4f75c2a76cf4c439d65c8e67511cd91c895edf8ccf003a5f94ffa07c29456296  llvm-0001-fix-shared-build.patch
-a426aae067bf90d5b80ff50cfcd60d0ff501e769091045eda1bb52010208c81e  llvm-0002-musl-triple.patch
-c6892c843b38c9a852367e5d76ffc29c21bdfd522adbc4c4e3e3c890a513c0db  llvm-0003-musl-hacks.patch
-73b820f283c0d4c6b2ca286f34a50ae4ec6deeb78adc0eca5b57d4c263068510  llvm-3.5.2.tar.gz
-9d2a4bb8607e0879a0537165b9c2af7cfe4cc998627a62951106bffa1929dbe8  polly-3.5.2.src.tar.xz"
-sha512sums="d117cfd0dc7c1e60a230871e071cf4bd823c67ff5facd804326d2dad402f8eba2066104098e8bee9055d182c401a9c28d2730ef9b65d556cee88a18e639bbf60  ghc-7.10.3b-src.tar.bz2
-a88895ee38bf7451ba6a2e929ff224643ea0a536a9633d463d91a471e41b6aae302af2c3ca4fc914e4b3401fcadb137bb0c68c9fb7d0f768835374aef1b22766  cabal-install-1.22.7.0.tar.gz
-b3c0e0f74680e9b2d02f1c923a191ef5eb913be84105e4d63aae6a88b1dac758467cecad3430496a7945cebdc73ec5ee1f643dc5dc7b336fee920e3c8b6d54d2  llvm-0001-fix-shared-build.patch
-f3879e0fdcf1e6509889f64726bc10b84b8bf16dbcb1b1b32f8b25b00cba987ba7c156a577e92338c2f5c4051cbc6832910cb6fdbb9a9f6ac8bcd20dc9e8e783  llvm-0002-musl-triple.patch
-df8959d43af48054bc35e4125f98e5dab1e1b5beaf7b67e95791caf144efec06764bd31a9eb5efc2179932591de8b862ebf89592d131e47070c89f19412979b7  llvm-0003-musl-hacks.patch
-c6f7baa3fc454ef86bcf819e08c9e73b2902da0cce5b4923af1114d509b4d1987b0d1fd2fde70241478afcaac4b880b0acd8e356259ba432811cfdec4c70b2f4  llvm-3.5.2.tar.gz
-01ec8f03542f4a345522345b4a69c1d775f8799149feebb3f404f289a53bd0b4b4797c0ff14bd2d73bdeb08dab7c89b126f9929f98bf176c8fc80f6a63e91799  polly-3.5.2.src.tar.xz"
