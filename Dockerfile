@@ -45,6 +45,19 @@ RUN abuild checksum && abuild -r
 USER root
 RUN apk update
 
+ENV ghcllvm37 $testing/ghc-llvm37
+run install -d $ghcllvm37
+COPY ghc-llvm37 $ghcllvm37
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
+RUN apk update
+USER $builduser
+
+WORKDIR $ghcllvm37
+RUN abuild checksum && abuild -r
+
+USER root
+RUN apk update
+
 ENV ghcbootstrap $testing/ghc-bootstrap
 COPY ghc-bootstrap $ghcbootstrap
 RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
@@ -64,8 +77,7 @@ RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$buildus
 RUN apk update
 USER $builduser
 WORKDIR $ghc
-RUN abuild checksum 
-run abuild -r
+RUN abuild checksum && abuild -r
 
 USER root
 RUN apk update
