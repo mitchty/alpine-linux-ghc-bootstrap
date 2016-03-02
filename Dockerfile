@@ -71,7 +71,9 @@ RUN abuild checksum && abuild -r
 USER root
 RUN apk update
 
-COPY ghc-7.10 $ghc
+#env major 7.10
+env major 8.0
+COPY ghc-$major $ghc
 RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 RUN apk update
 USER $builduser

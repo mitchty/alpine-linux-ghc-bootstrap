@@ -18,7 +18,7 @@ all: x86_64
 
 dl: $(SRCS)
 
-x86_64: 
+x86_64:
 	TARGET=ghc-$(GHC_VERSION)-$@-unknown-linux-musl.tar.xz
 	docker build -t $(DOCKER_NAME):$@ -f bootstrap/$@/Dockerfile . | tee make-$@-$(shell date +%s).log
 	docker run -a stdout "$(DOCKER_NAME):$@" /bin/cat "/tmp/ghc-$(GHC_VERSION)-$(ARCH)-pc-linux-musl.tar.xz" > $(TARGET)

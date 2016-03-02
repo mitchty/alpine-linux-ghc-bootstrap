@@ -3,9 +3,9 @@
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=ghc
 pkgdesc="The Glasgow haskell compiler"
-apkgver=7.10.3b
+apkgver=8.0.1
 pkgver=$(echo ${apkgver} | tr -d '[a-z]')
-pkgrel=1
+pkgrel=0
 url="http://haskell.org"
 subpackages="$pkgname-doc $pkgname-dev"
 arch="x86_64"
@@ -13,13 +13,17 @@ arch="x86_64"
 # https://www.haskell.org/ghc/license
 # https://ghc.haskell.org/trac/ghc/wiki/Licensing
 #
-# Note also that ghc is sensitive to the version of llvm used, hence the
-# ghc-llvm-X.Y package.
+# Included llvm is UIO-NCSA licensed. Included as ghc is sensitive to the version
+# of llvm used. Given llvm is not always forward/backward compatible we build it
+# here as well. Note, ghc 8.0 will be doing the same for tier 1 platforms so being
+# consistent with the future.
 #
 # Ref: https://ghc.haskell.org/trac/ghc/wiki/Status/GHC-8.0.1
 #      https://ghc.haskell.org/trac/ghc/wiki/ImprovedLLVMBackend
+#
+# It is ONLY needed for opt and llc respectively, llvm is not fully installed this way.
 license="custom:bsd3"
-depends="bash gmp-dev libffi musl zlib ncurses perl gcc ghc-llvm-3.5"
+depends="bash gmp-dev libffi musl zlib ncurses perl gcc ghc-llvm-3.7"
 install=""
 dev_depends="
 	$depends
@@ -37,12 +41,18 @@ makedepends="
 	ghc-bootstrap
 	"
 
-_builddir="$srcdir/$pkgname-$pkgver"
+# SPECIAL CASE
+# http://downloads.haskell.org/~ghc/8.0.1-rc2/ghc-8.0.0.20160204-src.tar.xz
+_builddir="$srcdir/$pkgname-8.0.0.20160204"
 
 # ghc source
 source="
-	https://www.haskell.org/ghc/dist/$pkgver/ghc-$apkgver-src.tar.bz2
+	http://downloads.haskell.org/~ghc/8.0.1-rc2/ghc-8.0.0.20160204-src.tar.xz
 	"
+
+#prepare() {
+	# INSERT GHC PATCHES HERE SOMEDAY
+#}
 
 _ghc_build_tmp="$_builddir/tmp"
 
@@ -54,12 +64,9 @@ build() {
 	echo "SRC_CC_OPTS         += -fPIC" >> mk/build.mk || return 1
 	echo "GhcLibHcOpts        += -fPIC" >> mk/build.mk || return 1
 	echo "GhcRtsCcOpts        += -fPIC" >> mk/build.mk || return 1
-	echo "INTEGER_LIBRARY      = integer-gmp2" >> mk/build.mk || return 1
+	echo "INTEGER_LIBRARY      = integer-gmp" >> mk/build.mk || return 1
 	echo "BeConservative       = YES" >> mk/build.mk || return 1
-	echo "GhcLibWays           = v p dyn" >> mk/build.mk || return 1
-	echo "BUILD_DOCBOOK_HTML   = NO" >> mk/build.mk  || return 1
-	echo "BUILD_DOCBOOK_PS     = NO" >> mk/build.mk || return 1
-	echo "BUILD_DOCBOOK_PDF    = NO" >> mk/build.mk || return 1
+	echo "GhcLibWays = v p dyn" >> mk/build.mk || return 1
 	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc \

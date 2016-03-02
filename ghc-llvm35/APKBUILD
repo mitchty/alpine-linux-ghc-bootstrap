@@ -6,7 +6,7 @@
 #
 # This allows the ghc/ghc-bootstrap portx to use the correct llvm.
 _pkgname=llvm
-llvm_major=3.5  
+llvm_major=3.5
 llvm_version=${llvm_major}.2
 suffix="-${llvm_major}"
 opt=opt${suffix}
@@ -23,151 +23,153 @@ install=""
 subpackages=""
 # llvm build dependencies
 makedepends="
-        $depends
-        $makedepends
-        perl
-        cmake
-        make
-        flex
-        bison
-        groff
-        musl-dev
-        binutils-dev
-        libffi-dev
-        zlib-dev
-        ncurses-dev
-        python
-        python-dev
-        gmp-dev
-        git
-        libtool
-        autoconf
-        automake
-        "
+	$depends
+	$makedepends
+	perl
+	cmake
+	make
+	flex
+	bison
+	groff
+	musl-dev
+	binutils-dev
+	libffi-dev
+	zlib-dev
+	ncurses-dev
+	python
+	python-dev
+	gmp-dev
+	git
+	libtool
+	autoconf
+	automake
+"
 _builddir="$srcdir/$pkgname-$pkgver"
-# musl patches
+
+# musl patches for 3.5.2
 source="
-        llvm-0001-fix-shared-build.patch
-        llvm-0002-musl-triple.patch
-        llvm-0003-musl-hacks.patch
-        "  
-# Snag tarball for 3.5 from github for https reasons.
+	llvm-0001-fix-shared-build.patch
+	llvm-0002-musl-triple.patch
+	llvm-0003-musl-hacks.patch
+"
+
+# llvm/polly
 source="
-       $source
-       http://llvm.org/releases/$pkgver/llvm-$pkgver.src.tar.xz
-       http://llvm.org/releases/$pkgver/polly-$pkgver.src.tar.xz
-       "
+	$source
+	http://llvm.org/releases/$pkgver/llvm-$pkgver.src.tar.xz
+	http://llvm.org/releases/$pkgver/polly-$pkgver.src.tar.xz
+"
 _builddir="$srcdir"/build
 llvm_srcdir="$srcdir/llvm-$llvm_version.src"
 llvm_builddir="$srcdir/build"
 srcdir_polly="$srcdir"/polly-$llvm_version.src
-       
+
 _cmake_flags="\
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_VERBOSE_MAKEFILE=NO \
-        -DLLVM_DEFAULT_TARGET_TRIPLE=$CBUILD \
-        -DLLVM_HOST_TRIPLE=$CHOST \
-        -DLLVM_BINUTILS_INCDIR=/usr/include \
-        -DLLVM_ENABLE_ASSERTIONS=NO \
-        -DLLVM_ENABLE_LIBCXX=NO \
-        -DLLVM_ENABLE_PIC=YES \
-        -DLLVM_ENABLE_ZLIB=YES \
-        -DLLVM_ENABLE_RTTI=YES \
-        -DLLVM_BUILD_EXAMPLES=NO \
-        -DLLVM_INCLUDE_EXAMPLES=NO \
-        -DLIBXML2_INCLUDE_DIR=/usr/include/libxml2 \
-        -DCMAKE_INSTALL_PREFIX=/usr \
-        -DLLVM_TARGETS_TO_BUILD='all' \
-        -DLLVM_BUILD_EXTERNAL_COMPILER_RT=NO \
-        -DBUILD_SHARED_LIBS=NO \
-        -DWITH_POLLY=YES \
-        -DLLVM_BUILD_DOCS=NO \
-        -DLLVM_BUILD_TESTS=NO \
-        -DLLVM_ENABLE_CXX1Y=NO \
-        -DLLVM_ENABLE_FFI=YES \
-        -DLLVM_ENABLE_SPHINX=NO \
-        -DLLVM_INCLUDE_EXAMPLES=NO \
-        -DLLVM_INCLUDE_TESTS=NO \
-        -DLLVM_ENABLE_CURSES=NO \                                       
-        -DLLVM_ENABLE_TERMINFO=NO \
-        "
+	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_VERBOSE_MAKEFILE=NO \
+	-DLLVM_DEFAULT_TARGET_TRIPLE=$CBUILD \
+	-DLLVM_HOST_TRIPLE=$CHOST \
+	-DLLVM_BINUTILS_INCDIR=/usr/include \
+	-DLLVM_ENABLE_ASSERTIONS=NO \
+	-DLLVM_ENABLE_LIBCXX=NO \
+	-DLLVM_ENABLE_PIC=YES \
+	-DLLVM_ENABLE_ZLIB=YES \
+	-DLLVM_ENABLE_RTTI=YES \
+	-DLLVM_BUILD_EXAMPLES=NO \
+	-DLLVM_INCLUDE_EXAMPLES=NO \
+	-DLIBXML2_INCLUDE_DIR=/usr/include/libxml2 \
+	-DCMAKE_INSTALL_PREFIX=/usr \
+	-DLLVM_TARGETS_TO_BUILD='all' \
+	-DLLVM_BUILD_EXTERNAL_COMPILER_RT=NO \
+	-DBUILD_SHARED_LIBS=NO \
+	-DWITH_POLLY=YES \
+	-DLLVM_BUILD_DOCS=NO \
+	-DLLVM_BUILD_TESTS=NO \
+	-DLLVM_ENABLE_CXX1Y=NO \
+	-DLLVM_ENABLE_FFI=YES \
+	-DLLVM_ENABLE_SPHINX=NO \
+	-DLLVM_INCLUDE_EXAMPLES=NO \
+	-DLLVM_INCLUDE_TESTS=NO \
+	-DLLVM_ENABLE_CURSES=NO \
+	-DLLVM_ENABLE_TERMINFO=NO \
+"
 
 prepare() {
-        msg "Patching LLVM core..."
-        cd "$llvm_srcdir" || return 1
-        for i in $source; do
-                case $i in
-                llvm-*.patch)
-                        msg "Applying $i..."
-                        patch -s -p1 -N -i "$srcdir"/$i || return 1
-                        ;;
-                esac
-        done
+	msg "Patching LLVM core..."
+	cd "$llvm_srcdir" || return 1
+	for i in $source; do
+		case $i in
+			llvm-*.patch)
+				msg "Applying $i..."
+				patch -s -p1 -N -i "$srcdir"/$i || return 1
+			;;
+		esac
+	done
 }
 
 build() {
-        msg "building isl"
-        # Note, isl is now too new for 3.5.2 in alpine linux.
-        # compile the right version into $srcdir so we can use polly
-        tmp="$srcdir/tmp"
-        install -d ${tmp} || return 1
-        isl_srcdir="$tmp/isl"
-        cloog_srcdir="$tmp/cloog"
-        cd "$srcdir_polly/utils"
-        ./checkout_cloog.sh ${tmp} || return 1
-        cd "$isl_srcdir"
-        ./configure --build=$CBUILD \
-                --host=$CHOST \
-                --prefix=$tmp || return 1
-        make || return 1
-        make -j1 INSTALL="install -D"    install || return 1
-        mv "$srcdir"/polly-$llvm_version.src ""$llvm_srcdir"/tools/polly" || return 1
-        (      
-                OCFLAGS="${CFLAGS}"
-                OCXXFLAGS="${CXXFLAGS}"
-                unset CFLAGS
-                unset CXXFLAGS
-               
-                test -z "${OCFLAGS}" && OCFLAGS="-O3"
-                test -z "${OCXXFLAGS}" && OCXXFLAGS="-O3"
-               
-                cflags="${OCFLAGS} -DNDEBUG -I$srcdir/tmp/include"
-                cxxflags="${OCXXFLAGS} -DNDEBUG -fno-devirtualize"
-               
-                export CBUILD
-               
-                ffi_include_dir="$(pkg-config --cflags-only-I libffi | sed 's|^-I||g')"
-               
-                cflags="${OCFLAGS} -DNDEBUG"
-                cxxflags="${OCXXFLAGS} -DNDEBUG"
-                CC="gcc"
-                CXX="g++"
-               
-                msg "Compiling llvm"
-                mkdir -p "${llvm_builddir}"
-                cd "${llvm_builddir}"
-                cmake -G "Unix Makefiles" -Wno-dev ${_cmake_flags} \
-                        -DCMAKE_C_COMPILER="${CC}" \
-                        -DCMAKE_CXX_COMPILER="${CXX}" \
-                        -DCMAKE_C_FLAGS_RELEASE="${cflags}" \
-                        -DCMAKE_CXX_FLAGS_RELEASE="${cxxflags}" \
-                        -DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS} -L$srcdir/tmp/lib -static" \
-                        -DCMAKE_SHARED_LINKER_FLAGS="${LDFLAGS}" \
-                        -DFFI_INCLUDE_DIR="$ffi_include_dir" \
-                        -DCMAKE_PREFIX_PATH="$srcdir/tmp" \
-                        "${llvm_srcdir}" || return 1
-               
-                (      
-                        export LD_LIBRARY_PATH="$srcdir/tmp/lib:$LD_LIBRARY_PATH"
-                        make llvm-tblgen opt llc || return 1
-                ) || return 1
-        ) || return 1
+	msg "building isl"
+	# Note, isl is now too new for 3.5.2 in alpine linux.
+	# compile the right version into $srcdir so we can use polly
+	tmp="$srcdir/tmp"
+	install -d ${tmp} || return 1
+	isl_srcdir="$tmp/isl"
+	cloog_srcdir="$tmp/cloog"
+	cd "$srcdir_polly/utils"
+	./checkout_cloog.sh ${tmp} || return 1
+	cd "$isl_srcdir"
+	./configure --build=$CBUILD \
+		--host=$CHOST \
+		--prefix=$tmp || return 1
+	make || return 1
+	make -j1 INSTALL="install -D"		 install || return 1
+	mv "$srcdir"/polly-$llvm_version.src ""$llvm_srcdir"/tools/polly" || return 1
+	(
+		OCFLAGS="${CFLAGS}"
+		OCXXFLAGS="${CXXFLAGS}"
+		unset CFLAGS
+		unset CXXFLAGS
+
+		test -z "${OCFLAGS}" && OCFLAGS="-O3"
+		test -z "${OCXXFLAGS}" && OCXXFLAGS="-O3"
+
+		cflags="${OCFLAGS} -DNDEBUG -I$srcdir/tmp/include"
+		cxxflags="${OCXXFLAGS} -DNDEBUG -fno-devirtualize"
+
+		export CBUILD
+
+		ffi_include_dir="$(pkg-config --cflags-only-I libffi | sed 's|^-I||g')"
+
+		cflags="${OCFLAGS} -DNDEBUG"
+		cxxflags="${OCXXFLAGS} -DNDEBUG"
+		CC="gcc"
+		CXX="g++"
+
+		msg "Compiling llvm"
+		install -d "${llvm_builddir}"
+		cd "${llvm_builddir}"
+		cmake -G "Unix Makefiles" -Wno-dev ${_cmake_flags} \
+			-DCMAKE_C_COMPILER="${CC}" \
+			-DCMAKE_CXX_COMPILER="${CXX}" \
+			-DCMAKE_C_FLAGS_RELEASE="${cflags}" \
+			-DCMAKE_CXX_FLAGS_RELEASE="${cxxflags}" \
+			-DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS} -L$srcdir/tmp/lib -static" \
+			-DCMAKE_SHARED_LINKER_FLAGS="${LDFLAGS}" \
+			-DFFI_INCLUDE_DIR="$ffi_include_dir" \
+			-DCMAKE_PREFIX_PATH="$srcdir/tmp" \
+			"${llvm_srcdir}" || return 1
+
+		(
+			export LD_LIBRARY_PATH="$srcdir/tmp/lib:$LD_LIBRARY_PATH"
+			make llvm-tblgen opt llc || return 1
+		) || return 1
+	) || return 1
 }
 
 package() {
-        cd "$_builddir"
-        install -d "$pkgdir/usr/lib/ghc"
-        for x in opt llc; do
-                install -Dm755 "$srcdir/build/bin/${x}" "$pkgdir/usr/lib/ghc/${x}${suffix}" || return 1
-        done
+	cd "$_builddir"
+	install -d "$pkgdir/usr/lib/ghc"
+	for x in opt llc; do
+		install -Dm755 "$srcdir/build/bin/${x}" "$pkgdir/usr/lib/ghc/${x}${suffix}" || return 1
+	done
 }
