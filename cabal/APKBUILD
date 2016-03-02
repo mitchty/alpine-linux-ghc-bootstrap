@@ -18,8 +18,9 @@ build() {
 	cd "$_builddir"
 	(
 		export HOME="$_builddir"
-		export PATH="$_builddir/.cabal-sandbox/bin:$srcdir:${PATH}"
+		export PATH="$_builddir/.cabal-sandbox/bin:${PATH}"
 		export NO_DOCUMENTATION=1
+		export EXTRA_BUILD_OPTS="--ghc-option=-fPIC"
 		./bootstrap.sh --sandbox || return 1
 		export EXTRA_BUILD_OPTS="--ghc-option=-optl=-static --ghc-option=-optl=-pthread --ghc-option=-fPIC"
 		./bootstrap.sh --sandbox || return 1
@@ -29,6 +30,6 @@ build() {
 package() {
 	cd "$_builddir"
 	install -d "$pkgdir/usr/bin" || return 1
-	install -m755 "$_builddir/.cabal-sandbox/bin/cabal" "$srcdir/cabal" || return 1
+	install -m755 "$_builddir/dist/build/cabal/cabal" "$pkgdir/usr/bin/cabal" || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }

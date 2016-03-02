@@ -39,7 +39,6 @@ makedepends="
         python
         python-dev
         gmp-dev
-        clang
         git
         libtool
         autoconf
@@ -81,18 +80,16 @@ _cmake_flags="\
         -DLLVM_TARGETS_TO_BUILD='all' \
         -DLLVM_BUILD_EXTERNAL_COMPILER_RT=NO \
         -DBUILD_SHARED_LIBS=NO \
-        -DLLVM_EXTERNAL_POLLY_BUILD=NO \
-        -DLINK_POLLY_INTO_TOOLS=YES \
+        -DWITH_POLLY=YES \
         -DLLVM_BUILD_DOCS=NO \
         -DLLVM_BUILD_TESTS=NO \
         -DLLVM_ENABLE_CXX1Y=NO \
         -DLLVM_ENABLE_FFI=YES \
         -DLLVM_ENABLE_SPHINX=NO \
-        -DLLVM_ENABLE_TERMINFO=YES \
-        -DWITH_POLLY=YES \
         -DLLVM_INCLUDE_EXAMPLES=NO \
         -DLLVM_INCLUDE_TESTS=NO \
-        -DPOLLY_ENABLE_GPGPU_CODEGEN=NO \
+        -DLLVM_ENABLE_CURSES=NO \                                       
+        -DLLVM_ENABLE_TERMINFO=NO \
         "
 
 prepare() {
@@ -143,13 +140,13 @@ build() {
                
                 cflags="${OCFLAGS} -DNDEBUG"
                 cxxflags="${OCXXFLAGS} -DNDEBUG"
-                CC="clang"
-                CXX="clang++"
+                CC="gcc"
+                CXX="g++"
                
                 msg "Compiling llvm"
                 mkdir -p "${llvm_builddir}"
                 cd "${llvm_builddir}"
-                cmake -G "Unix Makefiles" -Wno-dev ${_cmake_final_flags} \
+                cmake -G "Unix Makefiles" -Wno-dev ${_cmake_flags} \
                         -DCMAKE_C_COMPILER="${CC}" \
                         -DCMAKE_CXX_COMPILER="${CXX}" \
                         -DCMAKE_C_FLAGS_RELEASE="${cflags}" \
@@ -162,7 +159,7 @@ build() {
                
                 (      
                         export LD_LIBRARY_PATH="$srcdir/tmp/lib:$LD_LIBRARY_PATH"
-                        make llvm-tblgen llc opt|| return 1
+                        make llvm-tblgen opt llc || return 1
                 ) || return 1
         ) || return 1
 }

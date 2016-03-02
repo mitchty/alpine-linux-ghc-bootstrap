@@ -1,4 +1,4 @@
-FROM alpine:3.2
+FROM alpine:3.3
 
 ENV username "Mitch Tishmack"
 ENV useremail mitch.tishmack@gmail.com

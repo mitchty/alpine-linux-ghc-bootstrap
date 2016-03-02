@@ -52,27 +52,22 @@ source="
 	# INSERT GHC PATCHES HERE SOMEDAY
 #}
 
-ghc_llvm_opts=" -fllvm "
-
-# Stupid simple test to ensure the ghc we're using basically works.
-basic_check() {
-	cd "$_builddir"
-	echo 'main = putStrLn "ok"'> test.hs || return 1
-	ghc ${ghc_llvm_opts} -fPIC --make test.hs || return 1
-	./test || return 1
-	rm test test.o test.hi test.hs || return 1
-}
-
 _ghc_build_tmp="$_builddir/tmp"
 
 build() {
 	cd "$_builddir"
-	basic_check || return 1
-	cp mk/build.mk.sample mk/build.mk
-	echo "SRC_HC_OPTS += -fPIC" >> mk/build.mk
-	echo "INTEGER_LIBRARY = integer-gmp2" >> mk/build.mk
-	echo "BuildFlavour    = perf-llvm" >> mk/build.mk
-	echo "GhcProfiled     = YES" >> mk/build.mk
+	cp mk/build.mk.sample mk/build.mk || return 1
+	echo "BuildFlavour         = perf-llvm" >> mk/build.mk || return 1
+	echo "SRC_HC_OPTS         += -fPIC" >> mk/build.mk || return 1
+	echo "SRC_CC_OPTS         += -fPIC" >> mk/build.mk || return 1
+	echo "GhcLibHcOpts        += -fPIC" >> mk/build.mk || return 1
+	echo "GhcRtsCcOpts        += -fPIC" >> mk/build.mk || return 1
+	echo "INTEGER_LIBRARY      = integer-gmp2" >> mk/build.mk || return 1
+	echo "BeConservative       = YES" >> mk/build.mk || return 1
+	echo "GhcLibWays = v p dyn" >> mk/build.mk || return 1
+	echo "BUILD_DOCBOOK_HTML   = NO" >> mk/build.mk  || return 1
+	echo "BUILD_DOCBOOK_PS     = NO" >> mk/build.mk || return 1
+	echo "BUILD_DOCBOOK_PDF    = NO" >> mk/build.mk || return 1
 	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc \
@@ -95,7 +90,6 @@ dev() {
 package() {
 	cd "$_builddir"
 	make -j1 DESTDIR="$pkgdir" install || return 1
-	settings=$(find "$pkgdir" -name settings -type f)
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
-	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
+	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$(find $pkgdir -name settings -type f)"
 }
