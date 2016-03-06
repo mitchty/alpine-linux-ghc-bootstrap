@@ -1,0 +1,190 @@
+# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
+# Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
+#
+# Note, this ONLY compiles llvm for opt/llc and moves the
+# suffixed binaries to /usr/lib/ghc
+#
+# This allows the ghc/ghc-bootstrap portx to use the correct llvm.
+_pkgname=llvm
+llvm_major=3.5
+llvm_version=${llvm_major}.2
+suffix="-${llvm_major}"
+opt=opt${suffix}
+llc=llc${suffix}
+pkgname=ghc-${_pkgname}-${llvm_major}
+pkgver=$llvm_version
+pkgrel=0
+pkgdesc="ghc required llvm binaries"
+url="n/a"
+arch="x86_64 armhf"
+license="UIO-NCSA"
+depends=""
+install=""
+subpackages=""
+# llvm build dependencies
+makedepends="
+	$depends
+	$makedepends
+	perl
+	cmake
+	make
+	flex
+	bison
+	groff
+	musl-dev
+	binutils-dev
+	libffi-dev
+	zlib-dev
+	ncurses-dev
+	python
+	python-dev
+	gmp-dev
+	git
+	libtool
+	autoconf
+	automake
+"
+_builddir="$srcdir/$pkgname-$pkgver"
+
+# musl patches for 3.5.2
+source="
+	llvm-0001-fix-shared-build.patch
+	llvm-0002-musl-triple.patch
+	llvm-0003-musl-hacks.patch
+"
+
+# llvm/polly
+source="
+	$source
+	http://llvm.org/releases/$pkgver/llvm-$pkgver.src.tar.xz
+	http://llvm.org/releases/$pkgver/polly-$pkgver.src.tar.xz
+"
+_builddir="$srcdir"/build
+llvm_srcdir="$srcdir/llvm-$llvm_version.src"
+llvm_builddir="$srcdir/build"
+srcdir_polly="$srcdir"/polly-$llvm_version.src
+
+_cmake_flags="\
+	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_VERBOSE_MAKEFILE=NO \
+	-DLLVM_DEFAULT_TARGET_TRIPLE=$CBUILD \
+	-DLLVM_HOST_TRIPLE=$CHOST \
+	-DLLVM_BINUTILS_INCDIR=/usr/include \
+	-DLLVM_ENABLE_ASSERTIONS=NO \
+	-DLLVM_ENABLE_LIBCXX=NO \
+	-DLLVM_ENABLE_PIC=YES \
+	-DLLVM_ENABLE_ZLIB=YES \
+	-DLLVM_ENABLE_RTTI=YES \
+	-DLLVM_BUILD_EXAMPLES=NO \
+	-DLLVM_INCLUDE_EXAMPLES=NO \
+	-DLIBXML2_INCLUDE_DIR=/usr/include/libxml2 \
+	-DCMAKE_INSTALL_PREFIX=/usr \
+	-DLLVM_TARGETS_TO_BUILD='all' \
+	-DLLVM_BUILD_EXTERNAL_COMPILER_RT=NO \
+	-DBUILD_SHARED_LIBS=NO \
+	-DWITH_POLLY=YES \
+	-DLLVM_BUILD_DOCS=NO \
+	-DLLVM_BUILD_TESTS=NO \
+	-DLLVM_ENABLE_CXX1Y=NO \
+	-DLLVM_ENABLE_FFI=YES \
+	-DLLVM_ENABLE_SPHINX=NO \
+	-DLLVM_INCLUDE_EXAMPLES=NO \
+	-DLLVM_INCLUDE_TESTS=NO \
+	-DLLVM_ENABLE_CURSES=NO \
+	-DLLVM_ENABLE_TERMINFO=NO \
+"
+
+prepare() {
+	msg "Patching LLVM core..."
+	cd "$llvm_srcdir" || return 1
+	for i in $source; do
+		case $i in
+			llvm-*.patch)
+				msg "Applying $i..."
+				patch -s -p1 -N -i "$srcdir"/$i || return 1
+			;;
+		esac
+	done
+}
+
+build() {
+	msg "building isl"
+	# Note, isl is now too new for 3.5.2 in alpine linux.
+	# compile the right version into $srcdir so we can use polly
+	tmp="$srcdir/tmp"
+	install -d ${tmp} || return 1
+	isl_srcdir="$tmp/isl"
+	cloog_srcdir="$tmp/cloog"
+	cd "$srcdir_polly/utils"
+	./checkout_cloog.sh ${tmp} || return 1
+	cd "$isl_srcdir"
+	./configure --build=$CBUILD \
+		--host=$CHOST \
+		--prefix=$tmp || return 1
+	make || return 1
+	make -j1 INSTALL="install -D"		 install || return 1
+	mv "$srcdir"/polly-$llvm_version.src ""$llvm_srcdir"/tools/polly" || return 1
+	(
+		OCFLAGS="${CFLAGS}"
+		OCXXFLAGS="${CXXFLAGS}"
+		unset CFLAGS
+		unset CXXFLAGS
+
+		test -z "${OCFLAGS}" && OCFLAGS="-O3"
+		test -z "${OCXXFLAGS}" && OCXXFLAGS="-O3"
+
+		cflags="${OCFLAGS} -DNDEBUG -I$srcdir/tmp/include"
+		cxxflags="${OCXXFLAGS} -DNDEBUG -fno-devirtualize"
+
+		export CBUILD
+
+		ffi_include_dir="$(pkg-config --cflags-only-I libffi | sed 's|^-I||g')"
+
+		cflags="${OCFLAGS} -DNDEBUG"
+		cxxflags="${OCXXFLAGS} -DNDEBUG"
+		CC="gcc"
+		CXX="g++"
+
+		msg "Compiling llvm"
+		install -d "${llvm_builddir}"
+		cd "${llvm_builddir}"
+		cmake -G "Unix Makefiles" -Wno-dev ${_cmake_flags} \
+			-DCMAKE_C_COMPILER="${CC}" \
+			-DCMAKE_CXX_COMPILER="${CXX}" \
+			-DCMAKE_C_FLAGS_RELEASE="${cflags}" \
+			-DCMAKE_CXX_FLAGS_RELEASE="${cxxflags}" \
+			-DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS} -L$srcdir/tmp/lib -static" \
+			-DCMAKE_SHARED_LINKER_FLAGS="${LDFLAGS}" \
+			-DFFI_INCLUDE_DIR="$ffi_include_dir" \
+			-DCMAKE_PREFIX_PATH="$srcdir/tmp" \
+			"${llvm_srcdir}" || return 1
+
+		(
+			export LD_LIBRARY_PATH="$srcdir/tmp/lib:$LD_LIBRARY_PATH"
+			make llvm-tblgen opt llc || return 1
+		) || return 1
+	) || return 1
+}
+
+package() {
+	cd "$_builddir"
+	install -d "$pkgdir/usr/lib/ghc"
+	for x in opt llc; do
+		install -Dm755 "$srcdir/build/bin/${x}" "$pkgdir/usr/lib/ghc/${x}${suffix}" || return 1
+	done
+}
+md5sums="0947294a8c83c8d7f857dfc16204c4eb  llvm-0001-fix-shared-build.patch
+e1e37cc0dcfc69f1e8b1b89465452682  llvm-0002-musl-triple.patch
+056178d87918d531f531b1b765a59e7c  llvm-0003-musl-hacks.patch
+f5a4dc595f7e8bd23397684d0906d014  llvm-3.5.2.src.tar.xz
+840bb963ac20ac0638822b7c737f78c6  polly-3.5.2.src.tar.xz"
+sha256sums="4f75c2a76cf4c439d65c8e67511cd91c895edf8ccf003a5f94ffa07c29456296  llvm-0001-fix-shared-build.patch
+a426aae067bf90d5b80ff50cfcd60d0ff501e769091045eda1bb52010208c81e  llvm-0002-musl-triple.patch
+c6892c843b38c9a852367e5d76ffc29c21bdfd522adbc4c4e3e3c890a513c0db  llvm-0003-musl-hacks.patch
+44196156d5749eb4b4224fe471a29cc3984df92570a4a89fa859f7394fc0c575  llvm-3.5.2.src.tar.xz
+9d2a4bb8607e0879a0537165b9c2af7cfe4cc998627a62951106bffa1929dbe8  polly-3.5.2.src.tar.xz"
+sha512sums="b3c0e0f74680e9b2d02f1c923a191ef5eb913be84105e4d63aae6a88b1dac758467cecad3430496a7945cebdc73ec5ee1f643dc5dc7b336fee920e3c8b6d54d2  llvm-0001-fix-shared-build.patch
+f3879e0fdcf1e6509889f64726bc10b84b8bf16dbcb1b1b32f8b25b00cba987ba7c156a577e92338c2f5c4051cbc6832910cb6fdbb9a9f6ac8bcd20dc9e8e783  llvm-0002-musl-triple.patch
+df8959d43af48054bc35e4125f98e5dab1e1b5beaf7b67e95791caf144efec06764bd31a9eb5efc2179932591de8b862ebf89592d131e47070c89f19412979b7  llvm-0003-musl-hacks.patch
+0f6a83cc61a385387e7baf8fb8f0d9f18e3fd00d2d389a3c7e2c3792be7d82ed095506cac52c24e65ae3c1f94456a441d39440feef6125e25ef18447ec9dd406  llvm-3.5.2.src.tar.xz
+01ec8f03542f4a345522345b4a69c1d775f8799149feebb3f404f289a53bd0b4b4797c0ff14bd2d73bdeb08dab7c89b126f9929f98bf176c8fc80f6a63e91799  polly-3.5.2.src.tar.xz"

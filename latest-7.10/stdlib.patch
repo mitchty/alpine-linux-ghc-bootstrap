@@ -1,0 +1,19 @@
+--- stdlib.h
++++ stdlib.h.noc11
+@@ -41,12 +41,12 @@
+ void free (void *);
+ void *aligned_alloc(size_t alignment, size_t size);
+ 
+-_Noreturn void abort (void);
++void abort (void);
+ int atexit (void (*) (void));
+-_Noreturn void exit (int);
+-_Noreturn void _Exit (int);
++void exit (int);
++void _Exit (int);
+ int at_quick_exit (void (*) (void));
+-_Noreturn void quick_exit (int);
++void quick_exit (int);
+ 
+ char *getenv (const char *);
+ 

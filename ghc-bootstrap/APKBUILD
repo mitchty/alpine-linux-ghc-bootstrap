@@ -1,0 +1,41 @@
+#-*-mode: Shell-script; coding: utf-8;-*-
+# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
+# Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
+#
+# Mostly here for porting, beyond that the native ghc
+# should be preferred. Cross compiling insn't a commonly
+# tested piece of ghc.
+pkgname=ghc-bootstrap
+pkgdesc="The Glasgow haskell compiler (bootstrapped)"
+apkgver=7.10.3b
+pkgrel=0
+pkgver=$(echo ${apkgver} | tr -d '[a-z]')
+url="http://haskell.org"
+subpackages=""
+arch="x86_64"
+source="https://s3-us-west-2.amazonaws.com/alpine-ghc/next/7.10/ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz"
+license="custom:bsd3"
+depends="bash libffi musl zlib gcc binutils-gold ghc-llvm-3.5"
+install=""
+subpackages=""
+makedepends="perl"
+
+package() {
+	cd "$srcdir"
+	install -d "$pkgdir" || return 1
+	mv usr "$pkgdir" || return 1
+	settings=$(find "$pkgdir" -name settings -type f)
+	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$settings" || return 1
+}
+
+# The bootstrap process uses docker to build ghc from a debian glibc host
+# then upload the bootstrap compiler to where that source url is.
+#
+# Ensure that docker is running prior to calling this.
+snapshot () {
+	make x86_64
+	scp "ghc-$pkgver-$bs_arch-unknown-linux-musl.tar.xz" dev.alpinelinux.org:/archive/ghc-bootstrap/ || return 1
+}
+md5sums="2f191828a78f55d6e4b1d110822fb238  ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz"
+sha256sums="a8027ce973fdafb113ddd649632277aa009d4146e0cbe10d32185649ac872da4  ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz"
+sha512sums="dbf822250fc545453643dec1ebf75c4c0af98dc07238e3c4a8254c71891c2738f4996922cb3ffc9227297188e09eba835874a5c18947fdcf8e79944946c97c5d  ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz"
