@@ -37,6 +37,9 @@ resync-next: resync
 from-s3: alpine-ghc
 	s3cmd sync --delete-removed s3://alpine-ghc/ alpine-ghc/
 
+sync-from-s3: alpine-ghc
+	s3cmd sync s3://alpine-ghc/ alpine-ghc/
+
 clobber-next: resync-next
 	rsync -avz --delete alpine-ghc/7.10/x86_64/ alpine-ghc/next/7.10/x86_64
 # someday soon
@@ -46,6 +49,8 @@ promote:
 	rsync -avz --delete alpine-ghc/next/7.10/x86_64/ alpine-ghc/7.10/x86_64
 # someday soon
 #	rsync -avz --delete alpine-ghc/next/8.0/x86_64/ alpine-ghc/8.0/x86_64
+
+next: 7.10 apk sync-from-s3 sign sync-s3
 
 sync-s3:
 	s3cmd sync --acl-public alpine-ghc/ s3://alpine-ghc/

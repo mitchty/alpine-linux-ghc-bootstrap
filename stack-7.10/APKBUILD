@@ -1,7 +1,7 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=stack
-pkgver=1.0.2
+pkgver=1.0.4
 pkgrel=0
 pkgdesc="The Haskell Tool Stack"
 url="https://github.com/commercialhaskell/stack"
@@ -34,6 +34,6 @@ package() {
 	install -m755 "$pkg_stack" "$pkgdir/usr/bin" || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }
-md5sums="80a457ee972588e2e424de6c4dd1a776  stack-1.0.2.tar.gz"
-sha256sums="611e96aab0df2a2ad717cfbfe6018e67a90ecb1fb478c9e3c6d90478125986f0  stack-1.0.2.tar.gz"
-sha512sums="38f4f117d3bceeebe799fbe2c32bbab9d8e952a90562b6de4685bb8de6b6b0f4e911620e7a429821b6b16824acb00427417a6a7ee54528820b499b0fdfc3f3a0  stack-1.0.2.tar.gz"
+md5sums="a7174da5eb3eb7300c184e1da8504ce7  stack-1.0.4.tar.gz"
+sha256sums="60df5eaeccd9db7fdb535f056815c9ec196731231d4754d2e294f74bef3f4547  stack-1.0.4.tar.gz"
+sha512sums="2d7f46d6daa907444e6342ab5df4c0fab6ad8240719dd4a059489cc372bf4e4aa4d99c9f3cf64a177b94435762e5764446c372dd8c06a2f5673bc4d3375b9acc  stack-1.0.4.tar.gz"
