@@ -42,6 +42,11 @@ clobber-next: resync-next
 # someday soon
 #	rsync -avz --delete alpine-ghc/8.0/x86_64/ alpine-ghc/next/8.0/x86_64
 
+promote:
+	rsync -avz --delete alpine-ghc/next/7.10/x86_64/ alpine-ghc/7.10/x86_64
+# someday soon
+#	rsync -avz --delete alpine-ghc/next/8.0/x86_64/ alpine-ghc/8.0/x86_64
+
 sync-s3:
 	s3cmd sync --acl-public alpine-ghc/ s3://alpine-ghc/
 
