@@ -173,3 +173,18 @@ package() {
 		install -Dm755 "$srcdir/build/bin/${x}" "$pkgdir/usr/lib/ghc/${x}${suffix}" || return 1
 	done
 }
+md5sums="0947294a8c83c8d7f857dfc16204c4eb  llvm-0001-fix-shared-build.patch
+e1e37cc0dcfc69f1e8b1b89465452682  llvm-0002-musl-triple.patch
+056178d87918d531f531b1b765a59e7c  llvm-0003-musl-hacks.patch
+f5a4dc595f7e8bd23397684d0906d014  llvm-3.5.2.src.tar.xz
+840bb963ac20ac0638822b7c737f78c6  polly-3.5.2.src.tar.xz"
+sha256sums="4f75c2a76cf4c439d65c8e67511cd91c895edf8ccf003a5f94ffa07c29456296  llvm-0001-fix-shared-build.patch
+a426aae067bf90d5b80ff50cfcd60d0ff501e769091045eda1bb52010208c81e  llvm-0002-musl-triple.patch
+c6892c843b38c9a852367e5d76ffc29c21bdfd522adbc4c4e3e3c890a513c0db  llvm-0003-musl-hacks.patch
+44196156d5749eb4b4224fe471a29cc3984df92570a4a89fa859f7394fc0c575  llvm-3.5.2.src.tar.xz
+9d2a4bb8607e0879a0537165b9c2af7cfe4cc998627a62951106bffa1929dbe8  polly-3.5.2.src.tar.xz"
+sha512sums="b3c0e0f74680e9b2d02f1c923a191ef5eb913be84105e4d63aae6a88b1dac758467cecad3430496a7945cebdc73ec5ee1f643dc5dc7b336fee920e3c8b6d54d2  llvm-0001-fix-shared-build.patch
+f3879e0fdcf1e6509889f64726bc10b84b8bf16dbcb1b1b32f8b25b00cba987ba7c156a577e92338c2f5c4051cbc6832910cb6fdbb9a9f6ac8bcd20dc9e8e783  llvm-0002-musl-triple.patch
+df8959d43af48054bc35e4125f98e5dab1e1b5beaf7b67e95791caf144efec06764bd31a9eb5efc2179932591de8b862ebf89592d131e47070c89f19412979b7  llvm-0003-musl-hacks.patch
+0f6a83cc61a385387e7baf8fb8f0d9f18e3fd00d2d389a3c7e2c3792be7d82ed095506cac52c24e65ae3c1f94456a441d39440feef6125e25ef18447ec9dd406  llvm-3.5.2.src.tar.xz
+01ec8f03542f4a345522345b4a69c1d775f8799149feebb3f404f289a53bd0b4b4797c0ff14bd2d73bdeb08dab7c89b126f9929f98bf176c8fc80f6a63e91799  polly-3.5.2.src.tar.xz"

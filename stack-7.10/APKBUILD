@@ -1,0 +1,39 @@
+# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
+# Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
+pkgname=stack
+pkgver=1.0.2
+pkgrel=0
+pkgdesc="The Haskell Tool Stack"
+url="https://github.com/commercialhaskell/stack"
+arch="x86_64"
+license="bsd3"
+depends="ca-certificates"
+makedepends="bash ghc ghc-dev cabal pcre-dev"
+install=""
+subpackages="$pkgname-doc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/commercialhaskell/stack/archive/v$pkgver.tar.gz"
+_builddir="$srcdir/$pkgname-$pkgver"
+
+# Where we have cabal store our sandbox
+buildtmp="$_builddir/tmp"
+build() {
+	cd "$_builddir"
+	install -d "$buildtmp"
+	(
+		export PATH="${PATH}:$buildtmp/.cabal/bin"
+		export HOME="$buildtmp"
+		cabal update || return 1
+		cabal install -fstatic || return 1
+	)
+}
+
+package() {
+	cd "$_builddir"
+	install -d "$pkgdir/usr/bin" || return 1
+	pkg_stack="$buildtmp/.cabal/bin/$pkgname"
+	install -m755 "$pkg_stack" "$pkgdir/usr/bin" || return 1
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
+}
+md5sums="80a457ee972588e2e424de6c4dd1a776  stack-1.0.2.tar.gz"
+sha256sums="611e96aab0df2a2ad717cfbfe6018e67a90ecb1fb478c9e3c6d90478125986f0  stack-1.0.2.tar.gz"
+sha512sums="38f4f117d3bceeebe799fbe2c32bbab9d8e952a90562b6de4685bb8de6b6b0f4e911620e7a429821b6b16824acb00427417a6a7ee54528820b499b0fdfc3f3a0  stack-1.0.2.tar.gz"

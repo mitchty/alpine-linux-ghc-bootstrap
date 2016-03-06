@@ -32,6 +32,8 @@ RUN cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys &
    echo /home/$builduser/packages/testing >> /etc/apk/repositories
 run mkdir -p $ghc
 
+# base will end HERE
+
 ENV ghcllvm35 $testing/ghc-llvm35
 run install -d $ghcllvm35
 COPY ghc-llvm35 $ghcllvm35
@@ -71,8 +73,7 @@ RUN abuild checksum && abuild -r
 USER root
 RUN apk update
 
-#env major 7.10
-env major 8.0
+env major 7.10
 COPY ghc-$major $ghc
 RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 RUN apk update
@@ -102,4 +103,12 @@ COPY stack $stack
 RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 USER $builduser
 WORKDIR $stack
+RUN abuild checksum && abuild -r
+
+env major 8.0
+COPY ghc-$major $ghc
+RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
+RUN apk update
+USER $builduser
+WORKDIR $ghc
 RUN abuild checksum && abuild -r

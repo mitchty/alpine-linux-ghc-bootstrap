@@ -2,26 +2,23 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=ghc
-pkgdesc="The Glasgow haskell compiler"
-apkgver=8.0.1
-pkgver=$(echo ${apkgver} | tr -d '[a-z]')
-pkgrel=0
+pkgdesc="The Glasgow haskell compiler 8.0.1 rc2"
 url="http://haskell.org"
 subpackages="$pkgname-doc $pkgname-dev"
 arch="x86_64"
+apkgver=8.0.1
+pkgver=$(echo ${apkgver} | tr -d '[a-z]')
+pkgrel=0
+inst_prefix=/usr
 # Note ghc's license is basically bsd3. If you'd like to know more visit:
 # https://www.haskell.org/ghc/license
 # https://ghc.haskell.org/trac/ghc/wiki/Licensing
 #
-# Included llvm is UIO-NCSA licensed. Included as ghc is sensitive to the version
-# of llvm used. Given llvm is not always forward/backward compatible we build it
-# here as well. Note, ghc 8.0 will be doing the same for tier 1 platforms so being
-# consistent with the future.
+# Note also that ghc is sensitive to the version of llvm used, hence the
+# ghc-llvm-X.Y package.
 #
 # Ref: https://ghc.haskell.org/trac/ghc/wiki/Status/GHC-8.0.1
 #      https://ghc.haskell.org/trac/ghc/wiki/ImprovedLLVMBackend
-#
-# It is ONLY needed for opt and llc respectively, llvm is not fully installed this way.
 license="custom:bsd3"
 depends="bash gmp-dev libffi musl zlib ncurses perl gcc ghc-llvm-3.7"
 install=""
@@ -50,11 +47,13 @@ source="
 	http://downloads.haskell.org/~ghc/8.0.1-rc2/ghc-8.0.0.20160204-src.tar.xz
 	"
 
-#prepare() {
-	# INSERT GHC PATCHES HERE SOMEDAY
-#}
-
 _ghc_build_tmp="$_builddir/tmp"
+
+# Allow for multiple installs, intentionally not default.
+if [ ! -z $MULTI ]; then
+	inst_prefix="/opt/ghc/${pkgver}"
+	pkgname="ghc-${pkgver}"
+fi
 
 build() {
 	cd "$_builddir"
@@ -66,16 +65,15 @@ build() {
 	echo "GhcRtsCcOpts        += -fPIC" >> mk/build.mk || return 1
 	echo "INTEGER_LIBRARY      = integer-gmp" >> mk/build.mk || return 1
 	echo "BeConservative       = YES" >> mk/build.mk || return 1
-	echo "GhcLibWays = v p dyn" >> mk/build.mk || return 1
+	echo "GhcLibWays           = v p dyn" >> mk/build.mk || return 1
+	echo "BUILD_SPHINX_HTML    = NO" >> mk/build.mk  || return 1
+	echo "BUILD_SPHINX_PS      = NO" >> mk/build.mk || return 1
+	echo "BUILD_SPHINX_PDF     = NO" >> mk/build.mk || return 1
 	./configure \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--localstatedir=/var \
+		--prefix="${inst_prefix}" \
 		--with-ld=ld.gold \
-		--with-llc=/usr/lib/ghc/llc-3.5 \
-		--with-opt=/usr/lib/ghc/opt-3.5 || return 1
+		--with-llc=/usr/lib/ghc/llc-3.7 \
+		--with-opt=/usr/lib/ghc/opt-3.7 || return 1
 	make || return 1
 }
 
@@ -86,9 +84,14 @@ dev() {
 	install -Dm644 LICENSE "$subpkgdir/usr/share/licenses/$subpkgname/LICENSE" || return 1
 }
 
+# Note, -nopie due to this bug, and must remain until fixed.
+# https://ghc.haskell.org/trac/ghc/ticket/9007
 package() {
 	cd "$_builddir"
 	make -j1 DESTDIR="$pkgdir" install || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$(find $pkgdir -name settings -type f)"
 }
+md5sums="9050703a11b0adbdca5bacd5ee0e5ec0  ghc-8.0.0.20160204-src.tar.xz"
+sha256sums="53f8ba27b62fd5f1585f9c2be2c332e7e5bd96c1db1c0aa051248ea47664176d  ghc-8.0.0.20160204-src.tar.xz"
+sha512sums="09d2184f9beb6c40d180b55d6d13c8b9a2706718f6b5e9d4f5029cf8300bba9608ce28026e850459c294f82ac0b1bf303e073616b414ed5b4d5b223fa345bbc6  ghc-8.0.0.20160204-src.tar.xz"

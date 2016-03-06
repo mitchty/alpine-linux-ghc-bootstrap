@@ -1,21 +1,25 @@
-FROM ghcapk:latest
+from ghcbootstrap:latest
+user root
+env PATH ${PATH}:${HOME}/.cabal/bin
+workdir /tmp
+run apk update
 
-USER root
-ENV PATH ${PATH}:${HOME}/.cabal/bin
-WORKDIR /tmp
-RUN apk update
-
-RUN apk add ghc ghc-dev cabal stack alpine-sdk openssl-dev \
+run apk add ghc ghc-dev cabal stack alpine-sdk openssl-dev \
     sqlite-dev curl-dev libstdc++ && \
-    cabal update && \
-    cd ~/.cabal && cp config config.prestackage && \
+    cabal update
+run cd ~/.cabal && cp config config.prestackage && \
     cd ~/.cabal && curl -sS 'https://www.stackage.org/nightly-2016-01-06/cabal.config?global=true' >> ${HOME}/.cabal/config
 
-RUN cabal install alex happy && \
+run cabal install alex happy && \
     cabal install c2hs
 
-# work around ncurses include assumptions
-RUN cabal install ncurses -fforce-narrow-library
+# Work around a limitation of language-c/c2hs not being able to parse
+# C11 _Noreturn in stdlib.h
+copy stdlib.patch /tmp
+run cd /usr/include && patch -p0 < /tmp/stdlib.patch
+
+# work around ncurses include assumptions with -fforce-narrow-library
+run cabal install ncurses -fforce-narrow-library
 
 RUN cabal install mtl network-uri parsec random stm text zlib network \
     attoparsec haskell-src haskell-src-exts haskell-src-meta hashable html HUnit \

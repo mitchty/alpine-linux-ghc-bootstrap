@@ -158,3 +158,15 @@ package() {
                 install -Dm755 "$srcdir/build/bin/${x}" "$pkgdir/usr/lib/ghc/${x}${suffix}" || return 1
         done
 }
+md5sums="7fc6f417edec0cd7792df58386396b7d  llvm-0002-musl-triple.patch
+f57e1e394bb9b1bdb809dc5b2a8bf04e  llvm-0003-musl-hacks.patch
+bf8b3a2c79e61212c5409041dfdbd319  llvm-3.7.1.src.tar.xz
+3a2a7367002740881637f4d47bca4dc3  polly-3.7.1.src.tar.xz"
+sha256sums="4aa20d16e6afb41a2e6fd916dab9aec28acbf4f7f732524a755973c57daecde1  llvm-0002-musl-triple.patch
+028916482184cc29ca2bca4fd59a1cae2c61ee591e3d40fd4e3e9e472629da89  llvm-0003-musl-hacks.patch
+be7794ed0cec42d6c682ca8e3517535b54555a3defabec83554dbc74db545ad5  llvm-3.7.1.src.tar.xz
+ce9273ad315e1904fd35dc64ac4375fd592f3c296252ab1d163b9ff593ec3542  polly-3.7.1.src.tar.xz"
+sha512sums="e136731a82d52b70267c8fc8fdc35340406be577cd26188b0d8273fa3059d5606c4a3f618b02a99820b601dcf86bc3cb1ff9420be463521d978b5dda7764e6e8  llvm-0002-musl-triple.patch
+fdd08d4b380d1310282f4d1ee2c5c7b91246346bb275928233fd8a90d2b4c1599556af1f7d7c278fdf13faeee11ac7800ab2912a6e88dba0c9e8f6d906691e0f  llvm-0003-musl-hacks.patch
+ac521debc02f6deba96ef975d6a546b0c5c77299c1dbf5e1b87a7974ff5e7fd715bd7e384b92d9adf572ce47130bdbf6d3c648eb0d7f72f16f976292e4909e90  llvm-3.7.1.src.tar.xz
+f03a794ab85d587511653e0799c3f2ba95145762552741959decc42cde7f7f5bd80caf79c0169440b7e5d16d3bf895501387d5094f531386d74b6c3e4fe6b1e0  polly-3.7.1.src.tar.xz"

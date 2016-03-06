@@ -1,1 +1,6 @@
-alpine/ghc-x86_64-linux-musl-7.10.1.tar.xz
+*.log
+ghc-bootstrap/*.xz
+ghc-bootstrap/*.gz
+ghc-bootstrap/*.log
+alpine-keys.tar
+alpine-ghc
