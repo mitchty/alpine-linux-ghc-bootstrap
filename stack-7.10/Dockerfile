@@ -1,4 +1,4 @@
-from ghcbootstrap:cabal
+from ghcbootstrap:cabal-7.10
 user root
 env stack $testing/stack-7.10
 run install -d $stack

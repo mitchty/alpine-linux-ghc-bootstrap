@@ -1,43 +1,21 @@
-FROM mitchty/alpine-ghc:latest
+from ghcbootstrap:latest-7.10
 
-ENV username "Mitch Tishmack"
-ENV useremail mitch.tishmack@gmail.com
-ENV builduser build
+user root
+run rm -fr /home/$builduser/.abuild/*.rsa*
 
-USER root
-RUN apk update && apk add git abuild && \
-    echo "PACKAGER='$username <$useremail>'" >> /etc/abuild.conf
-
-RUN adduser -D $builduser && \
-    addgroup $builduser abuild && \
-    mkdir -p /var/cache/distfiles && \
-    chgrp abuild /var/cache/distfiles && \
-    chmod g+w /var/cache/distfiles && \
-    echo $builduser  "ALL=(ALL) ALL" > /etc/sudoers
-
-USER $builduser
-WORKDIR /home/$builduser
-RUN git config --global user.name '$username' && \
-    git config --global user.email '$useremail' && \
-    git clone --depth 1 git://dev.alpinelinux.org/aports && \
-    abuild-keygen -a -i
-
-USER root
-RUN rm -fr /home/$builduser/.abuild/*.rsa*
-
-COPY alpine-keys.tar /home/$builduser/.abuild/alpine-keys.tar
-RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
-USER $builduser
-WORKDIR /tmp
-RUN cd /home/$builduser/.abuild && tar xvf alpine-keys.tar
-COPY alpine-ghc/next/7.10/x86_64 /home/$builduser/packages/testing/x86_64
-USER root
-RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
-USER $builduser
-RUN apk index -o /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz `find /home/$builduser/packages/testing/x86_64 -name '*.apk'` || /bin/true
-USER root
-RUN rm /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
-RUN cp /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
-RUN find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
-RUN abuild-sign -k /home/$builduser/.abuild/*.rsa /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
-RUN cp /home/$builduser/.abuild/*.pub /etc/apk/keys && chmod o+r /etc/apk/keys/*.pub
+copy alpine-keys.tar /home/$builduser/.abuild/alpine-keys.tar
+run find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
+user $builduser
+workdir /tmp
+run cd /home/$builduser/.abuild && tar xvf alpine-keys.tar
+copy alpine-ghc/next/7.10/x86_64 /home/$builduser/packages/testing/x86_64
+user root
+run find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
+user $builduser
+run apk index -o /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz `find /home/$builduser/packages/testing/x86_64 -name '*.apk'` || /bin/true
+user root
+run rm /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
+run cp /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
+run find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
+run abuild-sign -k /home/$builduser/.abuild/*.rsa /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
+run cp /home/$builduser/.abuild/*.pub /etc/apk/keys && chmod o+r /etc/apk/keys/*.pub

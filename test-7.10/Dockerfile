@@ -1,4 +1,4 @@
-from ghcbootstrap:latest
+from ghcbootstrap:latest-7.10
 user root
 env PATH ${PATH}:${HOME}/.cabal/bin
 workdir /tmp
@@ -21,7 +21,7 @@ run cd /usr/include && patch -p0 < /tmp/stdlib.patch
 # work around ncurses include assumptions with -fforce-narrow-library
 run cabal install ncurses -fforce-narrow-library
 
-RUN cabal install mtl network-uri parsec random stm text zlib network \
+run cabal install mtl network-uri parsec random stm text zlib network \
     attoparsec haskell-src haskell-src-exts haskell-src-meta hashable html HUnit \
     parallel QuickCheck regex-base regex-compat regex-posix split syb \
     unordered-containers vector primitive async bytedump unix-bytestring colour \
@@ -45,7 +45,6 @@ RUN cabal install mtl network-uri parsec random stm text zlib network \
     network-transport-tcp tasty tasty-hunit safecopy \
     sodium unbounded-delays shellcheck aeson optparse-applicative inline-c stack
 
-RUN echo "main = putStrLn \"ok\"" > /tmp/test.hs
-ENV PATH $HOME/.cabal/bin:$PATH
-WORKDIR /tmp"
-CMD ["bash"]
+env PATH $HOME/.cabal/bin:$PATH
+workdir "/tmp"
+cmd ["bash"]
