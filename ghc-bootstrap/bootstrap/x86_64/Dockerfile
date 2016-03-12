@@ -1,4 +1,16 @@
+# Mostly self contained setup to build a stage2 ghc for musl
 from debian:8.0
+
+# Install stock bindist for cross compile
+env ghc 7.10.3
+env arch x86_64
+env llvm 3.5.2
+
+# Get all the sources for compiling
+add https://downloads.haskell.org/~ghc/$ghc/ghc-$ghc-$arch-deb8-linux.tar.xz /tmp/
+add https://downloads.haskell.org/~ghc/$ghc/ghc-$ghc-src.tar.xz /tmp/
+add http://llvm.org/releases/$llvm/llvm-$llvm.src.tar.xz /tmp/
+add http://llvm.org/releases/$llvm/polly-$llvm.src.tar.xz /tmp/
 
 # all needed packages for compiling
 run apt-get update && \
@@ -20,26 +32,24 @@ run apt-get update && \
       cmake \
       g++ \
       python \
-      pixz
+      pixz \
+      openssl
 
-# Install stock bindist for cross compile
-env ghc 7.10.3
-env arch x86_64
-copy ghc-$ghc-$arch-deb8-linux.tar.xz /tmp/ghc.txz
+# Make sure the cksums match
+copy bootstrap/cksums /tmp
+run cd /tmp && openssl sha1 ghc-$ghc-$arch-deb8-linux.tar.xz ghc-$ghc-src.tar.xz llvm-$llvm.src.tar.xz polly-$llvm.src.tar.xz > cksums.dl && diff /tmp/cksums*
+
 workdir /tmp
-run tar xJpf /tmp/ghc.txz
+run tar xJpf /tmp/ghc-$ghc-$arch-deb8-linux.tar.xz
 workdir /tmp/ghc-$ghc
 run ./configure --prefix=/usr && \
-make -j1 install && \
-rm -fr /tmp/ghc-$ghc
+    make -j1 install && \
+    rm -fr /tmp/ghc-$ghc
 
-env llvm 3.5.2
 workdir /tmp
-copy llvm-$llvm.src.tar.xz /tmp/llvm.txz
-copy polly-$llvm.src.tar.xz /tmp/polly.txz
 copy bootstrap/llvm-3.5.2.sh /tmp/llvm.sh
-run tar xJpf /tmp/llvm.txz && \
-    tar xJpf /tmp/polly.txz && \
+run tar xJpf /tmp/llvm-$llvm.src.tar.xz && \
+    tar xJpf /tmp/polly-$llvm.src.tar.xz && \
     /tmp/llvm.sh && \
     rm -fr /tmp/llvm-$llvm.src
 
@@ -47,19 +57,18 @@ env tardir /tmp/root
 env crosscc musl-gcc
 
 workdir /tmp
-copy ghc-$ghc-src.tar.xz /tmp/ghc-src.txz
-run tar xJpf /tmp/ghc-src.txz
+run tar xJpf /tmp/ghc-$ghc-src.tar.xz
 workdir /tmp/ghc-$ghc
 copy bootstrap/$arch/bootstrap.patch bootstrap.patch
-run patch -p1 < bootstrap.patch
-run cp mk/build.mk.sample mk/build.mk
-run echo "BuildFlavour         = quick-llvm" >> mk/build.mk && \
+run patch -p1 < bootstrap.patch && \
+    cp mk/build.mk.sample mk/build.mk && \
+    echo "BuildFlavour         = quick-llvm" >> mk/build.mk && \
     echo "INTEGER_LIBRARY      = integer-simple" >> mk/build.mk && \
     echo "HADDOCK_DOCS         = NO" >> mk/build.mk && \
     echo "BUILD_DOCBOOK_HTML   = NO" >> mk/build.mk && \
     echo "BUILD_DOCBOOK_PS     = NO" >> mk/build.mk && \
-    echo "BUILD_DOCBOOK_PDF    = NO" >> mk/build.mk
-run ./configure \
+    echo "BUILD_DOCBOOK_PDF    = NO" >> mk/build.mk && \
+    ./configure \
   --target=$arch-pc-linux-musl \
   --with-gcc=$crosscc \
   --with-ld=ld.gold \

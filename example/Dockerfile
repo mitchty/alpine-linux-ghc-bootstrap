@@ -9,7 +9,7 @@ COPY mitch.tishmack@gmail.com-55881c97.rsa.pub /etc/apk/keys/mitch.tishmack@gmai
 RUN apk update && apk upgrade
 
 # Prereqs
-RUN apk add ghc ghc-dev cabal stack
+RUN apk add ghc ghc-dev cabal stack alpine-sdk
 
 ENV PATH ${PATH}:/root/.cabal/bin
 RUN cabal update && stack update
