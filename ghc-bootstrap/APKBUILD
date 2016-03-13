@@ -12,8 +12,13 @@ pkgrel=0
 pkgver=$(echo ${apkgver} | tr -d '[a-z]')
 url="http://haskell.org"
 subpackages=""
-arch="x86_64"
-source="https://s3-us-west-2.amazonaws.com/alpine-ghc/next/7.10/ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz"
+arch="x86_64 armhf"
+
+source="
+	https://s3-us-west-2.amazonaws.com/alpine-ghc/next/7.10/ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz
+	https://s3-us-west-2.amazonaws.com/alpine-ghc/next/7.10/ghc-7.10.3-arm-unknown-linux-musleabihf.tar.xz
+"
+
 license="custom:bsd3"
 depends="bash libffi musl zlib gcc binutils-gold ghc-llvm-3.5"
 install=""
@@ -33,7 +38,11 @@ package() {
 #
 # Ensure that docker is running prior to calling this.
 snapshot () {
-	make x86_64
+	docker_name="alpine-ghc-bootstrap"
+	docker_rel=$CARCH
+	docker_build="${docker_name}:${docker_rel}"
+	docker build -t "${docker_build}" -f bootstrap/${docker_rel}/Dockerfile . || return 1
+	docker run -a stdout "${docker_build}" /bin/cat "/tmp/ghc-$(GHC_VERSION)-arm-unknown-linux-musleabihf.tar.xz" > ghc-$(GHC_VERSION)-arm-unknown-linux-musleabihf.tar.xz
 	scp "ghc-$pkgver-$bs_arch-unknown-linux-musl.tar.xz" dev.alpinelinux.org:/archive/ghc-bootstrap/ || return 1
 }
 md5sums="2f191828a78f55d6e4b1d110822fb238  ghc-7.10.3-x86_64-unknown-linux-musl.tar.xz"
