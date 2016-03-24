@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 # Add the apk repository
-RUN echo "https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10" >> /etc/apk/repositories
+RUN echo "https://s3-us-west-2.amazonaws.com/alpine-ghc/next/8.0" >> /etc/apk/repositories
 
 # Make sure I built my own apks... >.<
 COPY mitch.tishmack@gmail.com-55881c97.rsa.pub /etc/apk/keys/mitch.tishmack@gmail.com-55881c97.rsa.pub

@@ -1,17 +1,22 @@
-GHC_VERSION:=7.10.3
+GHC_VERSION:=8.0
 ARCH:=x86_64
 
 DOCKER_NAME:=alpine-ghc-bootstrap
 TARGET:=ghc-$(GHC_VERSION)-$(ARCH)-unknown-linux-musl.tar.xz
 
-.PHONY: clean distclean cleandocker x86_64
+.PHONY: clean distclean cleandocker x86_64 armhf
 
-all: x86_64
+all: x86_64 armhf
 
 x86_64:
 	TARGET=ghc-$(GHC_VERSION)-$@-unknown-linux-musl.tar.xz
 	docker build -t $(DOCKER_NAME):$@ -f bootstrap/$@/Dockerfile . | tee make-$@-$(shell date +%s).log
 	docker run -a stdout "$(DOCKER_NAME):$@" /bin/cat "/tmp/ghc-$(GHC_VERSION)-$(ARCH)-pc-linux-musl.tar.xz" > $(TARGET)
+
+armhf:
+	TARGET=ghc-$(GHC_VERSION)-arm-unknown-linux-musleabihf.tar.xz
+	docker build -t $(DOCKER_NAME):$@ -f bootstrap/$@/Dockerfile . | tee make-$@-$(shell date +%s).log
+	docker run -a stdout "$(DOCKER_NAME):$@" /bin/cat "/tmp/ghc-$(GHC_VERSION)-arm-unknown-linux-musleabihf.tar.xz" > ghc-$(GHC_VERSION)-arm-unknown-linux-musleabihf.tar.xz
 
 clean:
 	-rm $(TARGET)

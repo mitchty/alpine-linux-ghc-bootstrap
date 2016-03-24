@@ -1,42 +1,59 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=cabal
-pkgver=1.23.0.0
+pkgver=1.24.0.0
 pkgrel=0
 pkgdesc="The Haskell Cabal"
 url="http://haskell.org"
-arch="x86_64"
+arch="x86_64 armhf"
 license="bsd3"
-depends=""
-makedepends="ghc ghc-dev"
+depends="musl zlib gmp"
+makedepends="ghc ghc-dev binutils-gold git"
 install=""
 subpackages=""
-source="http://hackage.haskell.org/package/$pkgname-install-$pkgver/candidate/$pkgname-install-$pkgver.tar.gz"
-_builddir="$srcdir/$pkgname-install-$pkgver"
+source=""
+#	http://hackage.haskell.org/package/$pkgname-install-$pkgver/candidate/$pkgname-install-$pkgver.tar.gz
+#	"
+#	cabal-0001-ghc-8.0-candidate.patch
+#	cabal-0002-ghc-8.0-cabal-install-depends.patch
+#	"
+#_builddir="$srcdir/$pkgname-install-$pkgver"
+
+#prepare() {                         
+#        cd "$_builddir" || return 1
+#        for i in $source; do         
+#                case $i in        
+#                cabal-*.patch)
+#                        msg "Applying $i..."         
+#                        patch -s -p0 -N -i "$srcdir"/$i || return 1
+#                        ;;
+#                esac                                           
+#        done                                                    
+#}    
 
 # Build the cabal binary fully static to avoid any dependency issues.
 # Have to build it twice to work around a bootstrap bug.
 #
 # TODO: Fix that some snowy day.
 build() {
-	cd "$_builddir"
+_builddir="$srcdir/$pkgname-install-$pkgver"
+	git clone --recursive -b 1.24 https://github.com/haskell/cabal "$_builddir" || return 1
+	cd "$_builddir/cabal-install"
 	(
+                patch -s -p0 -N -i "$srcdir"/../cabal-0001-force-ld.gold.patch || return 1
 		export HOME="$_builddir"
 		export PATH="$_builddir/.cabal-sandbox/bin:${PATH}"
 		export NO_DOCUMENTATION=1
 		export EXTRA_BUILD_OPTS="--ghc-option=-fPIC"
+		export LD=ld.gold
 		sh -x ./bootstrap.sh --sandbox || return 1
-		export EXTRA_BUILD_OPTS="--ghc-option=-optl=-static --ghc-option=-fPIC"
-		./bootstrap.sh --sandbox || return 1
 	) || return 1
 }
 
 package() {
+_builddir="$srcdir/$pkgname-install-$pkgver/cabal-install"
 	cd "$_builddir"
 	install -d "$pkgdir/usr/bin" || return 1
 	install -m755 "$_builddir/dist/build/cabal/cabal" "$pkgdir/usr/bin/cabal" || return 1
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }
-md5sums="460995d67a9dc65f04bd2a68eaccf6a5  cabal-install-1.22.9.0.tar.gz"
-sha256sums="874035e5730263653c7aa459f270efbffc06da92ea0c828e09ebc04400e94940  cabal-install-1.22.9.0.tar.gz"
-sha512sums="c1b25b5780e23350f02337f69661d264259f47e7fb9d4ae531f4df2d9232c48f60d1df0cd91c3b329000026b3c62200c99e86838266cdb81384964962e0ef0a4  cabal-install-1.22.9.0.tar.gz"

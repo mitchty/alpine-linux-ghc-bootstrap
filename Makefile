@@ -1,11 +1,11 @@
-.PHONY: resync all base ghc-llvm35 ghc-llvm37 ghc-bootstrap ghc-7.10 cabal-7.10 stack-7.10 ghc-8.0 cabal-8.0 test-7.10 latest-7.10 latest-8.0 test 7.10 8.0 sign sign-7.10 sign-8.0
+.PHONY: resync all base ghc-llvm35 ghc-llvm37 ghc-bootstrap ghc-7.10 cabal-7.10 stack-7.10 ghc-8.0 cabal-8.0 test-7.10 latest-7.10 latest-8.0 test 7.10 8.0 sign sign-7.10 sign-8.0 stack-8.0
 DOCKER_NAME:=ghcbootstrap
 TAR:=gtar
 MAJOR:=7.10
 
-BASEAPKS = ghc-llvm35 ghc-bootstrap
+BASEAPKS = ghc-llvm37 ghc-bootstrap
 APKS7.10 = ghc-7.10 cabal-7.10 stack-7.10 latest-7.10
-APKS8.0 = ghc-llvm37 ghc-8.0 latest-8.0
+APKS8.0 = ghc-8.0 cabal-8.0 latest-8.0
 APKS = $(BASEAPKS) $(APKS7.10) $(APKS8.0)
 DOCKERS = base $(APKS)
 

@@ -88,7 +88,7 @@ _cmake_flags="\
         -DWITH_POLLY=YES \
         -DLLVM_INCLUDE_EXAMPLES=NO \
         -DLLVM_INCLUDE_TESTS=NO \
-        -DLLVM_ENABLE_CURSES=NO \                                       
+        -DLLVM_ENABLE_CURSES=NO \
         -DLLVM_ENABLE_TERMINFO=NO \
         "
 

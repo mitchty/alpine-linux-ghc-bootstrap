@@ -2,13 +2,14 @@
 # Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=ghc
-pkgdesc="The Glasgow haskell compiler 8.0.1 rc2"
+pkgdesc="The Glasgow haskell compiler 8.0.1 (git)"
 url="http://haskell.org"
 subpackages="$pkgname-doc $pkgname-dev"
-arch="x86_64"
+arch="x86_64 armhf"
 apkgver=8.0.1
 pkgver=$(echo ${apkgver} | tr -d '[a-z]')
-pkgrel=0
+_date=20160313
+pkgrel=${_date}
 inst_prefix=/usr
 # Note ghc's license is basically bsd3. If you'd like to know more visit:
 # https://www.haskell.org/ghc/license
@@ -40,11 +41,14 @@ makedepends="
 
 # SPECIAL CASE
 # http://downloads.haskell.org/~ghc/8.0.1-rc2/ghc-8.0.0.20160204-src.tar.xz
-_builddir="$srcdir/$pkgname-8.0.0.20160204"
+_builddir="$srcdir/$pkgname-8.0.0.${_date}"
 
 # ghc source
+#source="
+#	http://downloads.haskell.org/~ghc/8.0.1-rc2/ghc-8.0.0.20160204-src.tar.xz
+#	"
 source="
-	http://downloads.haskell.org/~ghc/8.0.1-rc2/ghc-8.0.0.20160204-src.tar.xz
+	https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-8.0.0.${_date}-src.tar.xz
 	"
 
 _ghc_build_tmp="$_builddir/tmp"
@@ -65,7 +69,9 @@ build() {
 	echo "GhcRtsCcOpts        += -fPIC" >> mk/build.mk || return 1
 	echo "INTEGER_LIBRARY      = integer-gmp" >> mk/build.mk || return 1
 	echo "BeConservative       = YES" >> mk/build.mk || return 1
-	echo "GhcLibWays           = v p dyn" >> mk/build.mk || return 1
+	echo "GhcLibWays           = v" >> mk/build.mk || return 1
+	echo "GhcLibWays          += dyn" >> mk/build.mk || return 1
+	echo "GhcLibWays          += p"  >> mk/build.mk || return 1
 	echo "BUILD_SPHINX_HTML    = NO" >> mk/build.mk  || return 1
 	echo "BUILD_SPHINX_PS      = NO" >> mk/build.mk || return 1
 	echo "BUILD_SPHINX_PDF     = NO" >> mk/build.mk || return 1
@@ -92,6 +98,6 @@ package() {
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$(find $pkgdir -name settings -type f)"
 }
-md5sums="9050703a11b0adbdca5bacd5ee0e5ec0  ghc-8.0.0.20160204-src.tar.xz"
-sha256sums="53f8ba27b62fd5f1585f9c2be2c332e7e5bd96c1db1c0aa051248ea47664176d  ghc-8.0.0.20160204-src.tar.xz"
-sha512sums="09d2184f9beb6c40d180b55d6d13c8b9a2706718f6b5e9d4f5029cf8300bba9608ce28026e850459c294f82ac0b1bf303e073616b414ed5b4d5b223fa345bbc6  ghc-8.0.0.20160204-src.tar.xz"
+md5sums="d564fed4e5261324d76c60e1209794d1  ghc-8.0.0.20160313-src.tar.xz"
+sha256sums="384998053507469fc0ca14f503a3306be96e238209d78907786df96eef358d34  ghc-8.0.0.20160313-src.tar.xz"
+sha512sums="4bd8628bcb183c96081c501b01750be6ee810ed82462ca8ad738db2205dad8149520af8940b6144db9a966eb4f7f60057dd24f6a03bbfeeb868b1fb11307799d  ghc-8.0.0.20160313-src.tar.xz"

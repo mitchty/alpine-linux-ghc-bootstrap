@@ -9,7 +9,6 @@ env cabal 1.22.9.0
 
 # Get all the sources for compiling
 add https://downloads.haskell.org/~ghc/$ghc/ghc-$ghc-$arch-deb8-linux.tar.xz /tmp/
-#add https://downloads.haskell.org/~ghc/$ghc/ghc-$ghc-src.tar.xz /tmp/
 add http://llvm.org/releases/$llvm/llvm-$llvm.src.tar.xz /tmp/
 add http://llvm.org/releases/$llvm/polly-$llvm.src.tar.xz /tmp/
 add https://www.haskell.org/cabal/release/cabal-install-$cabal/cabal-install-$cabal.tar.gz /tmp/
@@ -36,9 +35,9 @@ run apt-get update && \
       python \
       pixz \
       openssl \
-      git \
       bison \
-      flex
+      flex \
+      git
 
 # Make sure the cksums match
 copy bootstrap/cksums /tmp
@@ -74,13 +73,17 @@ run ./bootstrap.sh --global --no-doc && \
     cabal install --global alex happy && \
     rm -fr /tmp/cabal-install-$cabal
 
-# Build our cross compiler with musl libc from the sabotage linux stuff
+# First up, install/compile the cross compiler with musl libc
+# armv7 hard float cross compiler, we basically rebuild ghc again here with
+# the cross compiler, and the llvm we built for x86_64 as well
 workdir /tmp
 run git clone --depth 1 https://github.com/GregorR/musl-cross.git musl-cross
 workdir /tmp/musl-cross
 run echo GCC_BUILTIN_PREREQS=yes >> config.sh && \
-    echo ARCH=x86_64 >> config.sh && \
-    echo TRIPLE=x86_64-pc-linux-musl >> config.sh && \
+    echo ARCH=arm >> config.sh && \
+    echo TRIPLE=arm-linux-musleabihf >> config.sh && \
+    echo GCC_BOOTSTRAP_CONFFLAGS=\"--with-arch=armv6 --with-float=hard --with-fpu=vfp\" >> config.sh && \
+    echo GCC_CONFFLAGS=\"--with-arch=armv6 --with-float=hard --with-fpu=vfp\" >> config.sh && \
     echo GCC_STAGE1_NOOPT=1 >> config.sh && \
     echo CC_BASE_PREFIX=/usr >> config.sh && \
     echo MAKEFLAGS=-j$(grep -c processor /proc/cpuinfo) >> config.sh && \
@@ -93,41 +96,50 @@ run patch -p1 < gmpurl.patch && \
     ./build.sh && \
     rm -fr /tmp/musl-cross
 
-env triple x86_64-pc-linux-musl
 env tardir /tmp/root
-env crosscc $triple-gcc
+env crosscc arm-linux-musleabihf-gcc
+env target arm-linux-musleabihf
+env triple arm-unknown-linux-musleabihf
 
-run git clone --recursive -b ghc-8.0 git://git.haskell.org/ghc.git /tmp/ghc-8.0
-workdir /tmp/ghc-8.0
-env PATH $PATH:/usr/$triple/bin
-copy bootstrap/$arch/bootstrap.patch bootstrap.patch
-run patch -p1 < bootstrap.patch
-run cp mk/build.mk.sample mk/build.mk && \
-    ./boot && \
-    echo "BuildFlavour         = quick-llvm" >> mk/build.mk && \
-    echo "INTEGER_LIBRARY      = integer-simple" >> mk/build.mk && \
-    echo "HADDOCK_DOCS         = NO" >> mk/build.mk && \
-    echo "BUILD_SPHINX_HTML    = NO" >> mk/build.mk && \
-    echo "BUILD_SPHINX_PS      = NO" >> mk/build.mk && \
-    echo "BUILD_SPHINX_PDF     = NO" >> mk/build.mk && \
-    ./configure \
-  --target=$triple \
-  --prefix=/usr
-run make -j$(grep -c processor /proc/cpuinfo) || make -j1
-run make -j1 install DESTDIR=$tardir
+# add cross toolchain to PATH
+env PATH /usr/$target/bin:$PATH
 
-env ghc 8.0
-run rm $tardir/usr/bin/$triple-hp2ps
+run git clone --recursive -b ghc-8.0 git://git.haskell.org/ghc.git /tmp/ghc-8.0  
+workdir /tmp/ghc-8.0  
+env PATH $PATH:/usr/$triple/bin  
+copy bootstrap/$arch/bootstrap.patch bootstrap.patch  
+run patch -p1 < bootstrap.patch  
+run cp mk/build.mk.sample mk/build.mk && \  
+    ./boot && \  
+    echo "BuildFlavour         = quick-llvm" >> mk/build.mk && \  
+    echo "INTEGER_LIBRARY      = integer-simple" >> mk/build.mk && \  
+    echo "HADDOCK_DOCS         = NO" >> mk/build.mk && \  
+    echo "BUILD_SPHINX_HTML    = NO" >> mk/build.mk && \  
+    echo "BUILD_SPHINX_PS      = NO" >> mk/build.mk && \  
+    echo "BUILD_SPHINX_PDF     = NO" >> mk/build.mk && \  
+    ./configure \  
+  --target=$target \  
+  --prefix=/usr  
+run make -j$(grep -c processor /proc/cpuinfo) || make -j1  
+run make -j1 install STRIP_CMD=$target-strip DESTDIR=$tardir
+#run make -j1 install DESTDIR=$tardir
+  
+env ghc 8.0  
+# unlit and hp2ps both build using the stage0, not having luck
+# getting the build patched right so for now lets just
+# remove and rebuild these c helper programs
+run rm $(find $tardir -name "*-hp2ps")
 
 # remove target prefix from stage2 binaries
 # HACK, just build unlit with the cross compiler and move it to /usr/bin in the install dir
 workdir /tmp/ghc-$ghc/utils/unlit
 run $crosscc unlit.c -o $(find $tardir -name unlit)
+run $crosscc unlit.c -o $tardir/usr/bin/unlit
 
 # remove target prefix from stage2 binaries
 workdir $tardir/usr/bin
-run (for i in $triple-* ; do ln -s $i ${i#$triple-} ; done )
-copy bootstrap/$arch/settings /tmp/settings
+run (for i in $triple-* ; do ln -s $i ${i#$triple-} || /bin/true ; done )
+copy bootstrap/armhf/settings /tmp/settings
 run mv /tmp/settings $(find $tardir -name settings -type f)
 run rm -fr $tardir/usr/share/doc
 
