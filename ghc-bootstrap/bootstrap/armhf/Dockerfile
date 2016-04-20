@@ -104,7 +104,7 @@ env triple arm-unknown-linux-musleabihf
 # add cross toolchain to PATH
 env PATH /usr/$target/bin:$PATH
 
-run git clone --recursive -b ghc-8.0 git://git.haskell.org/ghc.git /tmp/ghc-8.0  
+copy ghc.git /tmp/ghc-8.0
 workdir /tmp/ghc-8.0  
 env PATH $PATH:/usr/$triple/bin  
 copy bootstrap/$arch/bootstrap.patch bootstrap.patch  

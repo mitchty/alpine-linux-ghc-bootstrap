@@ -10,6 +10,7 @@ env cabal 1.22.9.0
 # Get all the sources for compiling
 add https://downloads.haskell.org/~ghc/$ghc/ghc-$ghc-$arch-deb8-linux.tar.xz /tmp/
 #add https://downloads.haskell.org/~ghc/$ghc/ghc-$ghc-src.tar.xz /tmp/
+#add https://downloads.haskell.org/~ghc/$ghc/ghc-$ghc-src.tar.xz /tmp/
 add http://llvm.org/releases/$llvm/llvm-$llvm.src.tar.xz /tmp/
 add http://llvm.org/releases/$llvm/polly-$llvm.src.tar.xz /tmp/
 add https://www.haskell.org/cabal/release/cabal-install-$cabal/cabal-install-$cabal.tar.gz /tmp/
@@ -97,7 +98,7 @@ env triple x86_64-pc-linux-musl
 env tardir /tmp/root
 env crosscc $triple-gcc
 
-run git clone --recursive -b ghc-8.0 git://git.haskell.org/ghc.git /tmp/ghc-8.0
+copy ghc.git /tmp/ghc-8.0
 workdir /tmp/ghc-8.0
 env PATH $PATH:/usr/$triple/bin
 copy bootstrap/$arch/bootstrap.patch bootstrap.patch

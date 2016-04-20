@@ -1,13 +1,22 @@
-.PHONY: resync all base ghc-llvm35 ghc-llvm37 ghc-bootstrap ghc-7.10 cabal-7.10 stack-7.10 ghc-8.0 cabal-8.0 test-7.10 latest-7.10 latest-8.0 test 7.10 8.0 sign sign-7.10 sign-8.0 stack-8.0
+.PHONY: resync all base ghc-llvm35 ghc-llvm37 ghc-bootstrap ghc-7.10 cabal-7.10 stack-7.10 ghc-8.0 cabal-8.0 test-7.10 latest-7.10 latest-8.0 test 7.10 8.0 sign sign-7.10 sign-8.0 stack-8.0 fromgit
 DOCKER_NAME:=ghcbootstrap
 TAR:=gtar
 MAJOR:=7.10
 
 BASEAPKS = ghc-llvm37 ghc-bootstrap
 APKS7.10 = ghc-7.10 cabal-7.10 stack-7.10 latest-7.10
-APKS8.0 = ghc-8.0 cabal-8.0 latest-8.0
+APKS8.0 = ghc-8.0 cabal-8.0 stack-8.0 latest-8.0
 APKS = $(BASEAPKS) $(APKS7.10) $(APKS8.0)
 DOCKERS = base $(APKS)
+
+fromgit:
+	(cd ghc-git/ghc.git && git pull && git submodule update --init --recursive)
+	docker build -t ghc-git ghc-git | tee git-build.log
+
+syncgit:
+	$(eval GHC := $(shell docker run -a stdout ghc-git:latest find /tmp/ghc/sdistprep -name "ghc-8.0.0.*-src.tar.xz" -type f | grep -v windows | sed -e 's|/tmp/ghc/sdistprep/||'))
+	docker run -a stdout ghc-git:latest /bin/cat /tmp/ghc/sdistprep/$(GHC) > alpine-ghc/next/$(GHC)
+	$(MAKE) sync-s3
 
 all: 7.10 8.0
 
