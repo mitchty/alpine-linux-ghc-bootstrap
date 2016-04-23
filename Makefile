@@ -18,6 +18,15 @@ syncgit:
 	docker run -a stdout ghc-git:latest /bin/cat /tmp/ghc/sdistprep/$(GHC) > alpine-ghc/next/$(GHC)
 	$(MAKE) sync-s3
 
+bootstrapgit:
+	$(eval GHCDATE := $(shell docker run -a stdout ghc-git:latest find /tmp/ghc/sdistprep -name "ghc-8.0.0.*-src.tar.xz" -type f | grep -v windows | sed -e 's|-src.tar.xz||' -e 's|/tmp/ghc/sdistprep/ghc-.*[.]||'))
+	@echo $(GHCDATE)
+	cd ghc-bootstrap && make git
+	cd ghc-bootstrap && make x86_64
+
+syncgitbs:
+	mv ghc-bootstrap/ghc-8.0-*-unknown-linux-musl*.tar.xz alpine-ghc/next/ && make sync-s3 
+
 all: 7.10 8.0
 
 update:
