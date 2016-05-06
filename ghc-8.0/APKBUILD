@@ -8,8 +8,23 @@ subpackages="$pkgname-doc $pkgname-dev"
 arch="x86_64 armhf"
 apkgver=8.0.1
 pkgver=$(echo ${apkgver} | tr -d '[a-z]')
-_date=20160419
-pkgrel=${_date}
+
+# setting _date to YYYmmDD will activate build from git behavior
+_date=20160421
+if [ ! -z ${_date} ]; then
+  pkgrel=${_date}
+  _builddir="$srcdir/$pkgname-8.0.0.${_date}"
+  source="
+	https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-8.0.0.${_date}-src.tar.xz
+	"
+else
+  # TODO: fixme to account for builddir too when real release happens, until then junk data
+  pkgrel=0
+  _builddir="something"
+  source="
+	http://downloads.haskell.org/~ghc/8.0.1-rc2/ghc-8.0.0.20160204-src.tar.xz
+	"
+fi
 inst_prefix=/usr
 # Note ghc's license is basically bsd3. If you'd like to know more visit:
 # https://www.haskell.org/ghc/license
@@ -37,18 +52,6 @@ dev_depends="
 makedepends="
 	$dev_depends
 	ghc-bootstrap
-	"
-
-# SPECIAL CASE
-# http://downloads.haskell.org/~ghc/8.0.1-rc2/ghc-8.0.0.20160204-src.tar.xz
-_builddir="$srcdir/$pkgname-8.0.0.${_date}"
-
-# ghc source
-#source="
-#	http://downloads.haskell.org/~ghc/8.0.1-rc2/ghc-8.0.0.20160204-src.tar.xz
-#	"
-source="
-	https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-8.0.0.${_date}-src.tar.xz
 	"
 
 _ghc_build_tmp="$_builddir/tmp"
@@ -99,6 +102,6 @@ package() {
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$(find $pkgdir -name settings -type f)"
 }
-md5sums="7c4817a3606a7c71e92d5ae6503b5874  ghc-8.0.0.20160419-src.tar.xz"
-sha256sums="54bba15bf59f4ad7e8194b6b4e3e08cae50219dcd7cf32ce1827fe8ae03c1914  ghc-8.0.0.20160419-src.tar.xz"
-sha512sums="9ba758b8bd20cb619837559fbf95bb3a8b92048a38b0fcd8c6f56f0fe36fb25b746729f54a059174e12c5eb7f57aa52c4257c55d9b84d02a5bb0ff21ff586d04  ghc-8.0.0.20160419-src.tar.xz"
+md5sums="1fde2f69245395be9d1e52a11c96cea1  ghc-8.0.0.20160421-src.tar.xz"
+sha256sums="9b3a6ddba3217ce106f91167266b33fb1d2687b829b5effcb3abc017041233a8  ghc-8.0.0.20160421-src.tar.xz"
+sha512sums="b511b60dbf3e99b374129a1fb23b487a68c11623876c074d8fe2b5bb608d39dec353cc71792ffdf1d8dda298d7490ba0b2040e587de45388b802b190708045c3  ghc-8.0.0.20160421-src.tar.xz"

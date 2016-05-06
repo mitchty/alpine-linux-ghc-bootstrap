@@ -1,4 +1,4 @@
-from ghcbootstrap:ghc-bootstrap
+from ghcbootstrap:base
 user root
 env ghcllvm37 $testing/ghc-llvm37
 run install -d $ghcllvm37

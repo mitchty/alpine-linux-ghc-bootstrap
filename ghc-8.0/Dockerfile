@@ -1,4 +1,4 @@
-from ghcbootstrap:ghc-llvm37
+from ghcbootstrap:ghc-bootstrap
 user root
 env major 8.0
 copy . $ghc-$major

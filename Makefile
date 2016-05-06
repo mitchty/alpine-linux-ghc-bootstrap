@@ -1,11 +1,11 @@
-.PHONY: resync all base ghc-llvm35 ghc-llvm37 ghc-bootstrap ghc-7.10 cabal-7.10 stack-7.10 ghc-8.0 cabal-8.0 test-7.10 latest-7.10 latest-8.0 test 7.10 8.0 sign sign-7.10 sign-8.0 stack-8.0 fromgit
+.PHONY: resync all base ghc-llvm35 ghc-llvm37 ghc-bootstrap ghc-7.10 cabal-7.10 stack-7.10 ghc-8.0 cabal-8.0 test-7.10 latest-7.10 latest-8.0 test 7.10 8.0 sign sign-7.10 sign-8.0 stack-8.0 fromgit bootstrapgit syncgit syncgitbs git
 DOCKER_NAME:=ghcbootstrap
 TAR:=gtar
 MAJOR:=7.10
 
 BASEAPKS = ghc-llvm37 ghc-bootstrap
 APKS7.10 = ghc-7.10 cabal-7.10 stack-7.10 latest-7.10
-APKS8.0 = ghc-8.0 cabal-8.0 stack-8.0 latest-8.0
+APKS8.0 = ghc-8.0 cabal-8.0 latest-8.0  #stack-8.0 latest-8.0
 APKS = $(BASEAPKS) $(APKS7.10) $(APKS8.0)
 DOCKERS = base $(APKS)
 
@@ -19,13 +19,19 @@ syncgit:
 	$(MAKE) sync-s3
 
 bootstrapgit:
-	$(eval GHCDATE := $(shell docker run -a stdout ghc-git:latest find /tmp/ghc/sdistprep -name "ghc-8.0.0.*-src.tar.xz" -type f | grep -v windows | sed -e 's|-src.tar.xz||' -e 's|/tmp/ghc/sdistprep/ghc-.*[.]||'))
-	@echo $(GHCDATE)
 	cd ghc-bootstrap && make git
 	cd ghc-bootstrap && make x86_64
 
 syncgitbs:
 	mv ghc-bootstrap/ghc-8.0-*-unknown-linux-musl*.tar.xz alpine-ghc/next/ && make sync-s3 
+
+git: fromgit syncgit bootstrapgit syncgitbs clobber-next apk-8.0 sign sync-s3
+
+updategitsrcs:
+	$(eval GHCDATE := $(shell docker run -a stdout ghc-git:latest find /tmp/ghc/sdistprep -name "ghc-8.0.0.*-src.tar.xz" -type f | grep -v windows | sed -e 's|-src.tar.xz||' -e 's|/tmp/ghc/sdistprep/ghc-.*[.]||'))
+	@echo ghc built from date $(GHCDATE)
+	perl -pi -e "s|_date=.*|_date=$(GHCDATE)|" ghc-8.0/APKBUILD
+
 
 all: 7.10 8.0
 
