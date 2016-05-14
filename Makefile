@@ -5,13 +5,18 @@ MAJOR:=7.10
 
 BASEAPKS = ghc-llvm37 ghc-bootstrap
 APKS7.10 = ghc-7.10 cabal-7.10 stack-7.10 latest-7.10
-APKS8.0 = ghc-8.0 cabal-8.0 latest-8.0  #stack-8.0 latest-8.0
+APKS8.0 = ghc-8.0 cabal-8.0 stack-8.0 latest-8.0
 APKS = $(BASEAPKS) $(APKS7.10) $(APKS8.0)
 DOCKERS = base $(APKS)
 
 fromgit:
+	-docker rmi ghc-git
 	(cd ghc-git/ghc.git && git pull && git submodule update --init --recursive)
 	docker build -t ghc-git ghc-git | tee git-build.log
+
+ghcgit:
+	$(eval GHC := $(shell docker run -a stdout ghc-git:latest find /tmp/ghc/sdistprep -name "ghc-8.0.0.*-src.tar.xz" -type f | grep -v windows | sed -e 's|/tmp/ghc/sdistprep/||'))
+	@echo git ghc is $(GHC)
 
 syncgit:
 	$(eval GHC := $(shell docker run -a stdout ghc-git:latest find /tmp/ghc/sdistprep -name "ghc-8.0.0.*-src.tar.xz" -type f | grep -v windows | sed -e 's|/tmp/ghc/sdistprep/||'))
@@ -20,12 +25,13 @@ syncgit:
 
 bootstrapgit:
 	cd ghc-bootstrap && make git
-	cd ghc-bootstrap && make x86_64
+	cd ghc-bootstrap && make -j2
 
 syncgitbs:
 	mv ghc-bootstrap/ghc-8.0-*-unknown-linux-musl*.tar.xz alpine-ghc/next/ && make sync-s3 
 
-git: fromgit syncgit bootstrapgit syncgitbs clobber-next apk-8.0 sign sync-s3
+git: syncgitbs clobber-next updategitsrcs apk-8.0 sign sync-s3
+#git: fromgit bootstrapgit syncgitbs clobber-next updategitsrcs apk-8.0 sign sync-s3
 
 updategitsrcs:
 	$(eval GHCDATE := $(shell docker run -a stdout ghc-git:latest find /tmp/ghc/sdistprep -name "ghc-8.0.0.*-src.tar.xz" -type f | grep -v windows | sed -e 's|-src.tar.xz||' -e 's|/tmp/ghc/sdistprep/ghc-.*[.]||'))

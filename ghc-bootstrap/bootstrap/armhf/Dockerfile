@@ -7,14 +7,9 @@ env arch x86_64
 env llvm 3.7.1
 env cabal 1.22.9.0
 
-# Get all the sources for compiling
-add https://downloads.haskell.org/~ghc/$ghc/ghc-$ghc-$arch-deb8-linux.tar.xz /tmp/
-add http://llvm.org/releases/$llvm/llvm-$llvm.src.tar.xz /tmp/
-add http://llvm.org/releases/$llvm/polly-$llvm.src.tar.xz /tmp/
-add https://www.haskell.org/cabal/release/cabal-install-$cabal/cabal-install-$cabal.tar.gz /tmp/
-
 # all needed packages for compiling
-run apt-get update && \
+run apt-get clean && \
+    apt-get update && \
     apt-get install -y \
       binutils-gold \
       musl-tools \
@@ -39,9 +34,8 @@ run apt-get update && \
       flex \
       git
 
-# Make sure the cksums match
-copy bootstrap/cksums /tmp
-run cd /tmp && openssl sha1 cabal-install-$cabal.tar.gz ghc-$ghc-$arch-deb8-linux.tar.xz llvm-$llvm.src.tar.xz polly-$llvm.src.tar.xz > cksums.dl && diff /tmp/cksums*
+add http://llvm.org/releases/$llvm/llvm-$llvm.src.tar.xz /tmp/
+add http://llvm.org/releases/$llvm/polly-$llvm.src.tar.xz /tmp/
 
 # Install a non ancient version of llvm on debian, I'm purposefully ignoring
 # debian repos in favor of compiling to not have to deal with
@@ -49,24 +43,32 @@ run cd /tmp && openssl sha1 cabal-install-$cabal.tar.gz ghc-$ghc-$arch-deb8-linu
 # time to do that than just build the right llvm from source.
 workdir /tmp
 copy bootstrap/llvm-$llvm.sh /tmp/llvm.sh
-run tar xJpf /tmp/llvm-$llvm.src.tar.xz && \
+run openssl sha1 llvm-$llvm.src.tar.xz | grep "SHA1(llvm-3.7.1.src.tar.xz)= 5dbdcafac105273dcbff94c68837a66c6dd78cef" && \
+    openssl sha1 polly-$llvm.src.tar.xz | grep "SHA1(polly-3.7.1.src.tar.xz)= 0e3a461907cde7505fbdb44bf61ff318aa9254f7" && \
+    tar xJpf /tmp/llvm-$llvm.src.tar.xz && \
     tar xJpf /tmp/polly-$llvm.src.tar.xz && \
     /tmp/llvm.sh && \
     rm -fr /tmp/llvm-$llvm.src
 
+add https://downloads.haskell.org/~ghc/$ghc/ghc-$ghc-$arch-deb8-linux.tar.xz /tmp/
+
 # Install debian ghc binary from upstream.
 workdir /tmp
-run tar xJpf /tmp/ghc-$ghc-$arch-deb8-linux.tar.xz
+run openssl sha1 ghc-$ghc-$arch-deb8-linux.tar.xz | grep "SHA1(ghc-7.10.3-x86_64-deb8-linux.tar.xz)= bab16f95ef4fe6b7cc2fb6b36a02dceeeb53faa4" && \
+    tar xJpf /tmp/ghc-$ghc-$arch-deb8-linux.tar.xz
 workdir /tmp/ghc-$ghc
 run ./configure --prefix=/usr && \
     make -j1 install && \
     rm -fr /tmp/ghc-$ghc
 
+add https://www.haskell.org/cabal/release/cabal-install-$cabal/cabal-install-$cabal.tar.gz /tmp/
+
 # Install cabal so we can install alex/happy to pull off of git
 # bootstrap cabal and install alex/happy the same way apks are built
 # only globally
 workdir /tmp
-run tar xzpf /tmp/cabal-install-$cabal.tar.gz
+run openssl sha1 cabal-install-$cabal.tar.gz | grep "SHA1(cabal-install-1.22.9.0.tar.gz)= f1375c928794f45f253b8ec92c2af4732fec597b" && \
+    tar xzpf /tmp/cabal-install-$cabal.tar.gz
 workdir /tmp/cabal-install-$cabal
 run ./bootstrap.sh --global --no-doc && \
     cabal update && \
@@ -96,16 +98,21 @@ run patch -p1 < gmpurl.patch && \
     ./build.sh && \
     rm -fr /tmp/musl-cross
 
+add http://downloads.haskell.org/~ghc/8.0.1/ghc-8.0.1-src.tar.xz /tmp/
+
 env tardir /tmp/root
 env crosscc arm-linux-musleabihf-gcc
 env target arm-linux-musleabihf
 env triple arm-unknown-linux-musleabihf
+env ghc 8.0.1  
 
 # add cross toolchain to PATH
 env PATH /usr/$target/bin:$PATH
 
-copy ghc.git /tmp/ghc-8.0
-workdir /tmp/ghc-8.0  
+workdir /tmp
+run openssl sha1 ghc-$ghc-src.tar.xz | grep "SHA1(ghc-8.0.1-src.tar.xz)= 9b513ef7b1ab106eec3a9c59df8bd0245886010c" && \
+    tar xJpf /tmp/ghc-$ghc-src.tar.xz
+workdir /tmp/ghc-$ghc
 env PATH $PATH:/usr/$triple/bin  
 copy bootstrap/$arch/bootstrap.patch bootstrap.patch  
 run patch -p1 < bootstrap.patch  
@@ -122,9 +129,7 @@ run cp mk/build.mk.sample mk/build.mk && \
   --prefix=/usr  
 run make -j$(grep -c processor /proc/cpuinfo) || make -j1  
 run make -j1 install STRIP_CMD=$target-strip DESTDIR=$tardir
-#run make -j1 install DESTDIR=$tardir
   
-env ghc 8.0  
 # unlit and hp2ps both build using the stage0, not having luck
 # getting the build patched right so for now lets just
 # remove and rebuild these c helper programs

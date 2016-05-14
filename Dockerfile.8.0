@@ -15,9 +15,9 @@ user $builduser
 run apk index -o /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz `find /home/$builduser/packages/testing/x86_64 -name '*.apk'` || /bin/true
 run apk index -o /home/$builduser/packages/testing/armhf/APKINDEX.unsigned.tar.gz `find /home/$builduser/packages/testing/armhf -name '*.apk'` || /bin/true
 user root
-run rm /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
+run rm /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz || /bin/true
 run cp /home/$builduser/packages/testing/x86_64/APKINDEX.unsigned.tar.gz /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz
-run rm /home/$builduser/packages/testing/armhf/APKINDEX.tar.gz
+run rm /home/$builduser/packages/testing/armhf/APKINDEX.tar.gz || /bin/true
 run cp /home/$builduser/packages/testing/armhf/APKINDEX.unsigned.tar.gz /home/$builduser/packages/testing/armhf/APKINDEX.tar.gz
 run find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \;
 run abuild-sign -k /home/$builduser/.abuild/*.rsa /home/$builduser/packages/testing/x86_64/APKINDEX.tar.gz

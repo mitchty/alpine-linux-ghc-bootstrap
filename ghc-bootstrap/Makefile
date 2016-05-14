@@ -1,4 +1,4 @@
-GHC_VERSION:=8.0
+GHC_VERSION:=8.0.1
 ARCH:=x86_64
 
 DOCKER_NAME:=alpine-ghc-bootstrap

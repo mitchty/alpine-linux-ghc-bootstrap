@@ -5,7 +5,7 @@ pkgver=1.1.0
 pkgrel=0
 pkgdesc="The Haskell Tool Stack"
 url="https://github.com/commercialhaskell/stack"
-arch="x86_64"
+arch="x86_64 armhf"
 license="bsd3"
 depends="ca-certificates"
 makedepends="bash ghc ghc-dev cabal pcre-dev"
@@ -23,7 +23,7 @@ build() {
 		export PATH="${PATH}:$buildtmp/.cabal/bin"
 		export HOME="$buildtmp"
 		cabal update || return 1
-		cabal install -fstatic || return 1
+		cabal install -fstatic --allow-newer || return 1
 	)
 }
 

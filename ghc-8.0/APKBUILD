@@ -10,8 +10,8 @@ apkgver=8.0.1
 pkgver=$(echo ${apkgver} | tr -d '[a-z]')
 
 # setting _date to YYYmmDD will activate build from git behavior
-_date=20160421
-if [ ! -z ${_date} ]; then
+_date=
+if [ ${_date} != "" ]; then
   pkgrel=${_date}
   _builddir="$srcdir/$pkgname-8.0.0.${_date}"
   source="
@@ -20,9 +20,9 @@ if [ ! -z ${_date} ]; then
 else
   # TODO: fixme to account for builddir too when real release happens, until then junk data
   pkgrel=0
-  _builddir="something"
+  _builddir="$srcdir/$pkgname-$apkgver"
   source="
-	http://downloads.haskell.org/~ghc/8.0.1-rc2/ghc-8.0.0.20160204-src.tar.xz
+	http://downloads.haskell.org/~ghc/8.0.1/ghc-8.0.1-src.tar.xz
 	"
 fi
 inst_prefix=/usr
@@ -102,6 +102,6 @@ package() {
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$(find $pkgdir -name settings -type f)"
 }
-md5sums="1fde2f69245395be9d1e52a11c96cea1  ghc-8.0.0.20160421-src.tar.xz"
-sha256sums="9b3a6ddba3217ce106f91167266b33fb1d2687b829b5effcb3abc017041233a8  ghc-8.0.0.20160421-src.tar.xz"
-sha512sums="b511b60dbf3e99b374129a1fb23b487a68c11623876c074d8fe2b5bb608d39dec353cc71792ffdf1d8dda298d7490ba0b2040e587de45388b802b190708045c3  ghc-8.0.0.20160421-src.tar.xz"
+md5sums="94da3386c0de519eeea37586edd90187  ghc-8.0.1-src.tar.xz"
+sha256sums="eee2339f6f9cff50c2232306a491139c97730d8f31e1c02ba9d3284384cf3e66  ghc-8.0.1-src.tar.xz"
+sha512sums="412412dee67e081fa8fdaa0fed79bce914e61e26f7fe5042fc942b21982c9189b3ea1b9d2c5e11b951a1c27ceaa92b69e22f9999a414385cfb6981ffcb0a01a3  ghc-8.0.1-src.tar.xz"

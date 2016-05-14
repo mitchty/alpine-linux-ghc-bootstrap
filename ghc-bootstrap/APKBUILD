@@ -1,10 +1,8 @@
 #-*-mode: Shell-script; coding: utf-8;-*-
-# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 #
-# Mostly here for porting, beyond that the native ghc
-# should be preferred. Cross compiling insn't a commonly
-# tested piece of ghc.
+# Build/bootstrap ghc similarly to the go package.
+# Caveat: bootstrapping isn't a commonly tested piece of ghc.
 pkgname=ghc-bootstrap
 pkgdesc="The Glasgow haskell compiler (bootstrapped)"
 apkgver=8.0
@@ -12,8 +10,12 @@ pkgrel=0
 pkgver=$(echo ${apkgver} | tr -d '[a-z]')
 url="http://haskell.org"
 subpackages=""
-arch="x86_64"
-source="https://s3-us-west-2.amazonaws.com/alpine-ghc/next/8.0/ghc-8.0-x86_64-unknown-linux-musl.tar.xz"
+arch="x86_64 armhf"
+_arch=$CARCH
+if [ $CARCH == "armhf" ]; then
+	_arch=arm
+fi
+source="https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-8.0.1-${_arch}-unknown-linux-musl.tar.xz"
 license="custom:bsd3"
 depends="bash libffi musl zlib gcc binutils-gold ghc-llvm-3.7"
 install=""
@@ -32,9 +34,9 @@ package() {
 #
 # Ensure that docker is running prior to calling this.
 snapshot () {
-	make x86_64
+	make 
 	scp "ghc-$pkgver-$bs_arch-unknown-linux-musl.tar.xz" dev.alpinelinux.org:/archive/ghc-bootstrap/ || return 1
 }
-md5sums="c3a531c23975488bb76ec974b204f831  ghc-8.0-x86_64-unknown-linux-musl.tar.xz"
-sha256sums="dd9d37c067201b26cc06805f7c638c4a2d232193784023e4d00a1a7a78119190  ghc-8.0-x86_64-unknown-linux-musl.tar.xz"
-sha512sums="7f2799f4c52a621de9d831a07266773d20d663397212e124236e4e21a46918e4e8b6335283cd581169cbd4e9908b580afdc252cae72e547de0cc610b35f8baa5  ghc-8.0-x86_64-unknown-linux-musl.tar.xz"
+md5sums="61869333a2fc7011563c5ac3e2c3710c  ghc-8.0.1-x86_64-unknown-linux-musl.tar.xz"
+sha256sums="8318232010dec25180aba6c77038566a4862f4ccd9ddc53d1a4bf1fc667d5710  ghc-8.0.1-x86_64-unknown-linux-musl.tar.xz"
+sha512sums="90cd2454354cb91757cc5b626f2d036cb890b45dbe38339dd84c391e477a88cb614a88ed05f305b51645a53e7a1bb1c8e25aaa2156c294e22823f5d1234257af  ghc-8.0.1-x86_64-unknown-linux-musl.tar.xz"
