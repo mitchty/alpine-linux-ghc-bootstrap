@@ -1,4 +1,3 @@
-# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 #
 # Note, this ONLY compiles llvm for opt/llc and moves the
@@ -11,7 +10,12 @@ llvm_version=${llvm_major}.1
 suffix="-${llvm_major}"
 opt=opt${suffix}
 llc=llc${suffix}
-pkgname=ghc-${_pkgname}-${llvm_major}
+pkgname=ghc-${_pkgname}
+# Allow for multiple installs, intentionally not default.
+if [ ! -z $MULTI ]; then
+	replaces=${pkgname}
+	pkgname=${pkgname}-${llvm_major}
+fi
 pkgver=$llvm_version
 pkgrel=0
 pkgdesc="ghc required llvm binaries"
@@ -74,7 +78,6 @@ _cmake_flags="\
         -DLLVM_ENABLE_RTTI=YES \
         -DLLVM_BUILD_EXAMPLES=NO \
         -DLLVM_INCLUDE_EXAMPLES=NO \
-        -DLIBXML2_INCLUDE_DIR=/usr/include/libxml2 \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DLLVM_TARGETS_TO_BUILD='all' \
         -DLLVM_BUILD_EXTERNAL_COMPILER_RT=NO \
@@ -88,7 +91,6 @@ _cmake_flags="\
         -DWITH_POLLY=YES \
         -DLLVM_INCLUDE_EXAMPLES=NO \
         -DLLVM_INCLUDE_TESTS=NO \
-        -DLLVM_ENABLE_CURSES=NO \
         -DLLVM_ENABLE_TERMINFO=NO \
         "
 

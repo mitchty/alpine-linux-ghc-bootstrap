@@ -1,10 +1,8 @@
-from ghcbootstrap:cabal-8.0
+from ghc-8.0:cabal
 user root
-env stack $testing/stack-8.0
-run install -d $stack
+env stack $testing/stack
 copy . $stack
 run find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \; && apk update
 user $builduser
 workdir $stack
-run abuild checksum
-run abuild -r
+run abuild checksum && abuild -r

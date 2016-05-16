@@ -8,21 +8,19 @@ subpackages="$pkgname-doc $pkgname-dev"
 arch="x86_64 armhf"
 apkgver=8.0.1
 pkgver=$(echo ${apkgver} | tr -d '[a-z]')
-
 # setting _date to YYYmmDD will activate build from git behavior
 _date=
 if [ ${_date} != "" ]; then
   pkgrel=${_date}
-  _builddir="$srcdir/$pkgname-8.0.0.${_date}"
+  _builddir="$srcdir/$pkgname-${apkgver}.${_date}"
   source="
-	https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-8.0.0.${_date}-src.tar.xz
+	https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-${apkver}.${_date}-src.tar.xz
 	"
 else
-  # TODO: fixme to account for builddir too when real release happens, until then junk data
   pkgrel=0
   _builddir="$srcdir/$pkgname-$apkgver"
   source="
-	http://downloads.haskell.org/~ghc/8.0.1/ghc-8.0.1-src.tar.xz
+	http://downloads.haskell.org/~ghc/${apkgver}/ghc-${apkgver}-src.tar.xz
 	"
 fi
 inst_prefix=/usr
@@ -36,7 +34,7 @@ inst_prefix=/usr
 # Ref: https://ghc.haskell.org/trac/ghc/wiki/Status/GHC-8.0.1
 #      https://ghc.haskell.org/trac/ghc/wiki/ImprovedLLVMBackend
 license="custom:bsd3"
-depends="bash gmp-dev libffi musl zlib ncurses perl gcc ghc-llvm-3.7"
+depends="bash gmp-dev libffi musl zlib ncurses perl gcc ghc-llvm"
 install=""
 dev_depends="
 	$depends
@@ -60,6 +58,7 @@ _ghc_build_tmp="$_builddir/tmp"
 if [ ! -z $MULTI ]; then
 	inst_prefix="/opt/ghc/${pkgver}"
 	pkgname="ghc-${pkgver}"
+	depends="${depends}-37"
 fi
 
 build() {
@@ -69,6 +68,7 @@ build() {
 	echo "SRC_HC_OPTS         += -fPIC" >> mk/build.mk || return 1
 	echo "SRC_CC_OPTS         += -fPIC" >> mk/build.mk || return 1
 	echo "GhcLibHcOpts        += -fPIC" >> mk/build.mk || return 1
+	echo "GhcStage2HcOpts     += -fllvm" >> mk/build.mk || return 1
 	echo "GhcRtsCcOpts        += -fPIC" >> mk/build.mk || return 1
 	echo "INTEGER_LIBRARY      = integer-gmp" >> mk/build.mk || return 1
 	echo "BeConservative       = YES" >> mk/build.mk || return 1

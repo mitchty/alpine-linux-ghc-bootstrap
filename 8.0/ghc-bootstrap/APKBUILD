@@ -11,19 +11,18 @@ pkgver=$(echo ${apkgver} | tr -d '[a-z]')
 url="http://haskell.org"
 subpackages=""
 arch="x86_64 armhf"
-_arch=$CARCH
-if [ $CARCH == "armhf" ]; then
-	_arch=arm
-fi
-source="https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-8.0.1-${_arch}-unknown-linux-musl.tar.xz"
+source="
+	https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-8.0.1-x86_64-unknown-linux-musl.tar.xz
+	https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-8.0.1-arm-unknown-linux-musleabihf.tar.xz
+"
 license="custom:bsd3"
-depends="bash libffi musl zlib gcc binutils-gold ghc-llvm-3.7"
+depends="bash libffi musl zlib gcc binutils-gold ghc-llvm"
 install=""
 subpackages=""
 makedepends="perl"
 
 package() {
-	cd "$srcdir"
+	cd "$srcdir/$CARCH"
 	install -d "$pkgdir" || return 1
 	mv usr "$pkgdir" || return 1
 	settings=$(find "$pkgdir" -name settings -type f)
@@ -35,8 +34,11 @@ package() {
 # Ensure that docker is running prior to calling this.
 snapshot () {
 	make 
-	scp "ghc-$pkgver-$bs_arch-unknown-linux-musl.tar.xz" dev.alpinelinux.org:/archive/ghc-bootstrap/ || return 1
+	scp "ghc-$pkgver-*-unknown-linux-musl*.tar.xz" dev.alpinelinux.org:/archive/ghc-bootstrap/ || return 1
 }
-md5sums="61869333a2fc7011563c5ac3e2c3710c  ghc-8.0.1-x86_64-unknown-linux-musl.tar.xz"
-sha256sums="8318232010dec25180aba6c77038566a4862f4ccd9ddc53d1a4bf1fc667d5710  ghc-8.0.1-x86_64-unknown-linux-musl.tar.xz"
-sha512sums="90cd2454354cb91757cc5b626f2d036cb890b45dbe38339dd84c391e477a88cb614a88ed05f305b51645a53e7a1bb1c8e25aaa2156c294e22823f5d1234257af  ghc-8.0.1-x86_64-unknown-linux-musl.tar.xz"
+md5sums="af5244e96269555debc669518a723c82  ghc-8.0.1-x86_64-unknown-linux-musl.tar.xz
+dd9f06d557d1c3d1ff1195fabdff4213  ghc-8.0.1-arm-unknown-linux-musleabihf.tar.xz"
+sha256sums="ad4215344c5fcd5ff3126f7372b0bd838705603b0fc1b95ba14cc6d6e0e749bd  ghc-8.0.1-x86_64-unknown-linux-musl.tar.xz
+bb7e1523f05a7da0fc669ae24046171b6caaa61fe0634c52cb0caf9b43661245  ghc-8.0.1-arm-unknown-linux-musleabihf.tar.xz"
+sha512sums="12d1d1e3cf89330db63e6b10bf63cea4db75da71a75ca69e4b4c31e5f90aa3f770f4bffab5f1cfbb2d859128618d42e2ecfed6baad7e905d3e1ba7611806ef89  ghc-8.0.1-x86_64-unknown-linux-musl.tar.xz
+4beb817b5eed6267c610175c7ba0c95959eac3328ce3c5a08ef42150846ed19c9b714f767abe486cce744eb6c7738d847cea256ed1e278784c72d0afe0b4bbe1  ghc-8.0.1-arm-unknown-linux-musleabihf.tar.xz"

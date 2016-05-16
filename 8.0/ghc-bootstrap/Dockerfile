@@ -1,4 +1,4 @@
-from ghcbootstrap:ghc-llvm37
+from ghc-8.0:ghc-llvm
 user root
 env ghcbootstrap $testing/ghc-bootstrap
 run install -d $ghcbootstrap

@@ -96,8 +96,9 @@ run patch -p1 < gmpurl.patch && \
 
 add http://downloads.haskell.org/~ghc/8.0.1/ghc-8.0.1-src.tar.xz /tmp/
 
-env triple x86_64-pc-linux-musl
 env tardir /tmp/root
+env destdir /tmp/root/x86_64
+env triple x86_64-pc-linux-musl
 env crosscc $triple-gcc
 env ghc 8.0.1
 
@@ -120,21 +121,21 @@ run cp mk/build.mk.sample mk/build.mk && \
   --target=$triple \
   --prefix=/usr
 run make -j$(grep -c processor /proc/cpuinfo) || make -j1
-run make -j1 install DESTDIR=$tardir
+run make -j1 install DESTDIR=$destdir
 
-run rm $tardir/usr/bin/$triple-hp2ps
+run rm $(find $destdir -name "*-hp2ps")
 
 # remove target prefix from stage2 binaries
 # HACK, just build unlit with the cross compiler and move it to /usr/bin in the install dir
 workdir /tmp/ghc-$ghc/utils/unlit
-run $crosscc unlit.c -o $(find $tardir -name unlit)
+run $crosscc unlit.c -o $(find $destdir -name unlit)
 
 # remove target prefix from stage2 binaries
-workdir $tardir/usr/bin
+workdir $destdir/usr/bin
 run (for i in $triple-* ; do ln -s $i ${i#$triple-} ; done )
 copy bootstrap/$arch/settings /tmp/settings
-run mv /tmp/settings $(find $tardir -name settings -type f)
-run rm -fr $tardir/usr/share/doc
+run mv /tmp/settings $(find $destdir -name settings -type f)
+run rm -fr $destdir/usr/share/doc
 
 workdir $tardir
 # Compress to xz via pixz because xz is normally too

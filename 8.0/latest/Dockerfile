@@ -1,4 +1,4 @@
-from ghcbootstrap:stack-8.0
+from ghc-8.0:stack
 user root
 run apk add bash
 workdir /tmp

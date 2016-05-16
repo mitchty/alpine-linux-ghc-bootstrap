@@ -50,7 +50,8 @@ $(DOCKERS):
 
 7.10: base $(BASEAPKS) $(APKS7.10) test-7.10
 
-8.0: base $(BASEAPKS) $(APKS8.0)
+8.0:
+	cd 8.0 && $(MAKE)
 
 test: test-7.10 test-8.0
 

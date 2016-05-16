@@ -1,9 +1,7 @@
-from ghcbootstrap:ghc-bootstrap
+from ghc-8.0:ghc-bootstrap
 user root
-env major 8.0
-copy . $ghc-$major
+copy . $ghc
 run find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \; && apk update
 user $builduser
-workdir $ghc-$major
-run abuild checksum
-run abuild -r
+workdir $ghc
+run abuild checksum && abuild -r

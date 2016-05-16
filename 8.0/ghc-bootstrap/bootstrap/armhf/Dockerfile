@@ -101,6 +101,7 @@ run patch -p1 < gmpurl.patch && \
 add http://downloads.haskell.org/~ghc/8.0.1/ghc-8.0.1-src.tar.xz /tmp/
 
 env tardir /tmp/root
+env destdir /tmp/root/armhf
 env crosscc arm-linux-musleabihf-gcc
 env target arm-linux-musleabihf
 env triple arm-unknown-linux-musleabihf
@@ -128,25 +129,24 @@ run cp mk/build.mk.sample mk/build.mk && \
   --target=$target \  
   --prefix=/usr  
 run make -j$(grep -c processor /proc/cpuinfo) || make -j1  
-run make -j1 install STRIP_CMD=$target-strip DESTDIR=$tardir
+run make -j1 install STRIP_CMD=$target-strip DESTDIR=$destdir
   
 # unlit and hp2ps both build using the stage0, not having luck
 # getting the build patched right so for now lets just
 # remove and rebuild these c helper programs
-run rm $(find $tardir -name "*-hp2ps")
+run rm $(find $destdir -name "*-hp2ps")
 
 # remove target prefix from stage2 binaries
 # HACK, just build unlit with the cross compiler and move it to /usr/bin in the install dir
 workdir /tmp/ghc-$ghc/utils/unlit
-run $crosscc unlit.c -o $(find $tardir -name unlit)
-run $crosscc unlit.c -o $tardir/usr/bin/unlit
+run $crosscc unlit.c -o $(find $destdir -name unlit)
 
 # remove target prefix from stage2 binaries
-workdir $tardir/usr/bin
+workdir $destdir/usr/bin
 run (for i in $triple-* ; do ln -s $i ${i#$triple-} || /bin/true ; done )
 copy bootstrap/armhf/settings /tmp/settings
-run mv /tmp/settings $(find $tardir -name settings -type f)
-run rm -fr $tardir/usr/share/doc
+run mv /tmp/settings $(find $destdir -name settings -type f)
+run rm -fr $destdir/usr/share/doc
 
 workdir $tardir
 # Compress to xz via pixz because xz is normally too
