@@ -1,4 +1,4 @@
-# Ghc 7.10.3 on alpine linux
+# Ghc 8.0.1 on alpine linux
 
 ## How does one use it?
 
@@ -16,10 +16,10 @@ Abbreviated short version, note the pub key is also in examples.
 
 ```
 FROM alpine:latest
-RUN echo "https://s3-us-west-2.amazonaws.com/alpine-ghc/7.10" >> /etc/apk/repositories
+RUN echo "https://s3-us-west-2.amazonaws.com/alpine-ghc/8.0" >> /etc/apk/repositories
 COPY mitch.tishmack@gmail.com-55881c97.rsa.pub /etc/apk/keys/mitch.tishmack@gmail.com-55881c97.rsa.pub
 RUN apk update
-RUN apk add ghc cabal-install linux-headers musl-dev gmp-dev zlib-dev
+RUN apk add ghc cabal alpine-sdk linux-headers musl-dev gmp-dev zlib-dev
 ENV PATH ${PATH}:/root/.cabal/bin
 RUN cabal update
 RUN cabal install mtl network-uri parsec random stm text zlib network alex happy
@@ -49,12 +49,14 @@ So what actually happens underneath is as follows:
 
 # Will this go upstream into Alpine proper?
 
-Working on it. For now no, its not even been reviewed. Consider this alpha. Don't start running production stuff off this or you'll make kittens mew.
+Hoping to, I've submitted 8.0.1 as a new port for the testing repository. We shall see where that goes.
 
 # Will you port 7.8.4?
 
-I might, but I'm kinda sick of compiling ghc at this point. I have projects to do and this took ~3 weeks of my summer so not in a huge rush.
+No. I wanted ghc for arm with musl libc primarily. I almost managed to get 7.10.3 working with arm but hit llvm bugs. So 8.0.1+ is really where this port will begin.
 
 # Will you port to i386/arm?
 
-Arm for sure after I get qemu up and working to run the arm version of alpine linux. i386... probably not, don't see a point at this time but it wouldn't be too hard to do to be honest.
+Arm works now with 8.0.1
+
+i386... probably not, don't see a point at this time but it wouldn't be too hard to do to be honest.

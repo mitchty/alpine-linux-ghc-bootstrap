@@ -102,6 +102,6 @@ package() {
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$(find $pkgdir -name settings -type f)"
 }
-md5sums="94da3386c0de519eeea37586edd90187  ghc-8.0.1-src.tar.xz"
-sha256sums="eee2339f6f9cff50c2232306a491139c97730d8f31e1c02ba9d3284384cf3e66  ghc-8.0.1-src.tar.xz"
-sha512sums="412412dee67e081fa8fdaa0fed79bce914e61e26f7fe5042fc942b21982c9189b3ea1b9d2c5e11b951a1c27ceaa92b69e22f9999a414385cfb6981ffcb0a01a3  ghc-8.0.1-src.tar.xz"
+md5sums="c185b8a1f3e67e43533ec590b751c2ff  ghc-8.0.1-src.tar.xz"
+sha256sums="90fb20cd8712e3c0fbeb2eac8dab6894404c21569746655b9b12ca9684c7d1d2  ghc-8.0.1-src.tar.xz"
+sha512sums="5fa69fd0f7a639a10221a35e16c30b00e801644fcb8581903d3e215ecc0b3bd67960fc07a23d84d083b25e17024c69824fc21925cf82c26d8b36ee6c1fc9d28d  ghc-8.0.1-src.tar.xz"

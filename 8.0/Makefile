@@ -27,11 +27,13 @@ apk:
 
 latest:
 	cd $@ && docker build -t $(DOCKER_NAME):$@ .
-	docker run -a stdout $(DOCKER_NAME):$@ /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C apk
+	docker run -a stdout $(DOCKER_NAME):$@ /bin/tar -cf - /home/build/packages | $(TAR) xf - --strip-components=4 -C apk
 
 sign:
 	rsync -avz apk/ apk.sign
+	@echo done
 	docker build -t $(DOCKER_NAME):signed .
-	docker run -a stdout $(DOCKER_NAME):signed /bin/tar -cf - /home/build/packages/testing | $(TAR) xf - --strip-components=4 -C apk
-	rsync -avz apk.sign apk
+	docker run -a stdout $(DOCKER_NAME):signed /bin/tar -cf - /home/build/packages | $(TAR) xf - --strip-components=3 -C apk
+	@echo done
+	rsync -avz apk.sign/ apk
 	rm -fr apk.sign
