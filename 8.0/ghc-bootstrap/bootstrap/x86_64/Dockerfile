@@ -48,7 +48,7 @@ run openssl sha1 llvm-$llvm.src.tar.xz | grep "SHA1(llvm-3.7.1.src.tar.xz)= 5dbd
     tar xJpf /tmp/llvm-$llvm.src.tar.xz && \
     tar xJpf /tmp/polly-$llvm.src.tar.xz && \
     /tmp/llvm.sh && \
-    rm -fr /tmp/llvm-$llvm.src
+    rm -fr /tmp/llvm-$llvm.src /tmp/build
 
 add https://downloads.haskell.org/~ghc/$ghc/ghc-$ghc-$arch-deb8-linux.tar.xz /tmp/
 
@@ -103,7 +103,7 @@ env crosscc $triple-gcc
 env ghc 8.0.1
 
 workdir /tmp
-run openssl sha1 ghc-$ghc-src.tar.xz | grep "SHA1(ghc-8.0.1-src.tar.xz)= 9b513ef7b1ab106eec3a9c59df8bd0245886010c" && \
+run openssl sha1 ghc-$ghc-src.tar.xz | grep "SHA1(ghc-8.0.1-src.tar.xz)= 585a2d34a17ce2452273147f2e3cef1a2efe1aa5" && \
     tar xJpf /tmp/ghc-$ghc-src.tar.xz
 workdir /tmp/ghc-$ghc
 env PATH $PATH:/usr/$triple/bin

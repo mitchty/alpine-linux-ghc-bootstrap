@@ -111,7 +111,7 @@ env ghc 8.0.1
 env PATH /usr/$target/bin:$PATH
 
 workdir /tmp
-run openssl sha1 ghc-$ghc-src.tar.xz | grep "SHA1(ghc-8.0.1-src.tar.xz)= 9b513ef7b1ab106eec3a9c59df8bd0245886010c" && \
+run openssl sha1 ghc-$ghc-src.tar.xz | grep "SHA1(ghc-8.0.1-src.tar.xz)= 585a2d34a17ce2452273147f2e3cef1a2efe1aa5" && \
     tar xJpf /tmp/ghc-$ghc-src.tar.xz
 workdir /tmp/ghc-$ghc
 env PATH $PATH:/usr/$triple/bin  

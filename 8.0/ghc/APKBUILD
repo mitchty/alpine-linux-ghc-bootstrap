@@ -29,12 +29,12 @@ inst_prefix=/usr
 # https://ghc.haskell.org/trac/ghc/wiki/Licensing
 #
 # Note also that ghc is sensitive to the version of llvm used, hence the
-# ghc-llvm-X.Y package.
+# llvm3.7 package.
 #
 # Ref: https://ghc.haskell.org/trac/ghc/wiki/Status/GHC-8.0.1
 #      https://ghc.haskell.org/trac/ghc/wiki/ImprovedLLVMBackend
 license="custom:bsd3"
-depends="bash gmp-dev libffi musl zlib ncurses perl gcc ghc-llvm"
+depends="bash gmp-dev libffi musl zlib ncurses perl gcc llvm3.7"
 install=""
 dev_depends="
 	$depends
@@ -66,9 +66,9 @@ build() {
 	cp mk/build.mk.sample mk/build.mk || return 1
 	echo "BuildFlavour         = perf-llvm" >> mk/build.mk || return 1
 	echo "SRC_HC_OPTS         += -fPIC" >> mk/build.mk || return 1
+	echo "SRC_HC_OPTS         += -fllvm" >> mk/build.mk || return 1
 	echo "SRC_CC_OPTS         += -fPIC" >> mk/build.mk || return 1
 	echo "GhcLibHcOpts        += -fPIC" >> mk/build.mk || return 1
-	echo "GhcStage2HcOpts     += -fllvm" >> mk/build.mk || return 1
 	echo "GhcRtsCcOpts        += -fPIC" >> mk/build.mk || return 1
 	echo "INTEGER_LIBRARY      = integer-gmp" >> mk/build.mk || return 1
 	echo "BeConservative       = YES" >> mk/build.mk || return 1
@@ -81,9 +81,7 @@ build() {
 	echo "HADDOCK_DOCS         = NO" >> mk/build.mk || return 1
 	./configure \
 		--prefix="${inst_prefix}" \
-		--with-ld=ld.gold \
-		--with-llc=/usr/lib/ghc/llc-3.7 \
-		--with-opt=/usr/lib/ghc/opt-3.7 || return 1
+		--with-ld=ld.gold || return 1
 	make || return 1
 }
 
