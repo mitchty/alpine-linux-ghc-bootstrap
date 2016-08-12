@@ -1,29 +1,18 @@
 #-*-mode: Shell-script; coding: utf-8;-*-
-# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=ghc
-pkgdesc="The Glasgow haskell compiler 8.0.1 (git)"
+pkgdesc="The Glasgow Haskell Compiler"
 url="http://haskell.org"
 subpackages="$pkgname-doc $pkgname-dev"
 arch="x86_64 armhf"
 apkgver=8.0.1
 pkgver=$(echo ${apkgver} | tr -d '[a-z]')
-# setting _date to YYYmmDD will activate build from git behavior
-_date=
-if [ ${_date} != "" ]; then
-  pkgrel=${_date}
-  _builddir="$srcdir/$pkgname-${apkgver}.${_date}"
-  source="
-	https://s3-us-west-2.amazonaws.com/alpine-ghc/next/ghc-${apkver}.${_date}-src.tar.xz
-	"
-else
-  pkgrel=0
-  _builddir="$srcdir/$pkgname-$apkgver"
-  source="
+pkgrel=0
+_builddir="$srcdir/$pkgname-$apkgver"
+source="
 	http://downloads.haskell.org/~ghc/${apkgver}/ghc-${apkgver}-src.tar.xz
-	"
-fi
-inst_prefix=/usr
+"
+
 # Note ghc's license is basically bsd3. If you'd like to know more visit:
 # https://www.haskell.org/ghc/license
 # https://ghc.haskell.org/trac/ghc/wiki/Licensing
@@ -45,42 +34,40 @@ dev_depends="
 	libffi-dev
 	zlib-dev
 	binutils-dev
-	"
+"
+
 # ghc build dependencies
 makedepends="
 	$dev_depends
 	ghc-bootstrap
-	"
+"
 
 _ghc_build_tmp="$_builddir/tmp"
-
-# Allow for multiple installs, intentionally not default.
-if [ ! -z $MULTI ]; then
-	inst_prefix="/opt/ghc/${pkgver}"
-	pkgname="ghc-${pkgver}"
-	depends="${depends}-37"
-fi
 
 build() {
 	cd "$_builddir"
 	cp mk/build.mk.sample mk/build.mk || return 1
-	echo "BuildFlavour         = perf-llvm" >> mk/build.mk || return 1
-	echo "SRC_HC_OPTS         += -fPIC" >> mk/build.mk || return 1
-	echo "SRC_HC_OPTS         += -fllvm" >> mk/build.mk || return 1
-	echo "SRC_CC_OPTS         += -fPIC" >> mk/build.mk || return 1
-	echo "GhcLibHcOpts        += -fPIC" >> mk/build.mk || return 1
-	echo "GhcRtsCcOpts        += -fPIC" >> mk/build.mk || return 1
-	echo "INTEGER_LIBRARY      = integer-gmp" >> mk/build.mk || return 1
-	echo "BeConservative       = YES" >> mk/build.mk || return 1
-	echo "GhcLibWays           = v" >> mk/build.mk || return 1
-	echo "GhcLibWays          += dyn" >> mk/build.mk || return 1
-	echo "GhcLibWays          += p"  >> mk/build.mk || return 1
-	echo "BUILD_SPHINX_HTML    = NO" >> mk/build.mk  || return 1
-	echo "BUILD_SPHINX_PS      = NO" >> mk/build.mk || return 1
-	echo "BUILD_SPHINX_PDF     = NO" >> mk/build.mk || return 1
-	echo "HADDOCK_DOCS         = NO" >> mk/build.mk || return 1
-	./configure \
-		--prefix="${inst_prefix}" \
+	# Note we diverge from "stock" ghc with -fPIC
+	# to ensure we can link against alpine libraries.
+	# TODO: get html/sphinx docs building
+	cat >> mk/build.mk <<-EOF
+BuildFlavour         = perf-llvm
+SRC_HC_OPTS         += -fPIC
+SRC_HC_OPTS         += -fllvm
+SRC_CC_OPTS         += -fPIC
+GhcLibHcOpts        += -fPIC
+GhcRtsCcOpts        += -fPIC
+INTEGER_LIBRARY      = integer-gmp
+BeConservative       = YES
+GhcLibWays           = v
+GhcLibWays          += dyn
+GhcLibWays          += p
+BUILD_SPHINX_HTML    = NO
+BUILD_SPHINX_PS      = NO
+BUILD_SPHINX_PDF     = NO
+HADDOCK_DOCS         = NO
+EOF
+	./configure --prefix=/usr \
 		--with-ld=ld.gold || return 1
 	make || return 1
 }

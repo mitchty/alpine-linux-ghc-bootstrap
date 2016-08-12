@@ -5,14 +5,16 @@ ifeq ($(UNAME_S),Darwin)
 	TAR=gtar
 endif
 
-BASEAPKS = llvm3.7 ghc-bootstrap
-APKS_REAL = ghc cabal stack
+APKS_REAL = ghc cabal stack idris
 APKS = $(APKS_REAL)
-DOCKERS = base $(BASEAPKS) $(APKS)
+DOCKERS = base $(APKS)
 .PHONY: $(DOCKERS)
 
+.PHONY: rebuild
+rebuild: $(DOCKERS)
+
 .PHONY: all
-all: bootstrap $(DOCKERS)
+all: bootstrap rebuild
 
 .PHONY: distclean
 distclean: clean clean-docker clean-bootstrap
