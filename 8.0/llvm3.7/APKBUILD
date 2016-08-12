@@ -149,7 +149,7 @@ static() {
 }
 
 libs() {
-	pkgdesc="LLVM runtiem libraries"
+	pkgdesc="LLVM runtime libraries"
 	mkdir -p "$subpkgdir"/usr/lib
 	mv "$pkgdir"/usr/lib/libLLVM.so.[0-9]* "$subpkgdir"/usr/lib/
 }
