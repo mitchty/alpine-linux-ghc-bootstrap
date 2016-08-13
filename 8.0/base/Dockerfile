@@ -31,4 +31,7 @@ user root
 run perl -pi -e "s/JOBS[=]2/JOBS\=6/" /etc/abuild.conf && \
     cp -p $(find /home/$builduser/.abuild -name "*.pub" -type f) /etc/apk/keys && \
     echo /home/$builduser/packages/testing >> /etc/apk/repositories && \
+    echo "http://nl.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
     mkdir -p $ghc
+
+run apk update 
