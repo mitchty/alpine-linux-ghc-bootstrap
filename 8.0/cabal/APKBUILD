@@ -8,47 +8,37 @@ url="http://haskell.org"
 arch="x86_64 armhf"
 license="bsd3"
 depends="musl zlib gmp"
-makedepends="ghc ghc-dev binutils-gold chrpath"
+makedepends="ghc gmp-dev libffi-dev zlib-dev binutils-gold chrpath"
 install=""
-subpackages=""
+subpackages="$pkgname-doc"
 source="
 	https://www.haskell.org/$pkgname/release/$pkgname-install-$pkgver/$pkgname-install-$pkgver.tar.gz
 	cabal-0001-force-ld.gold.patch
 "
-_builddir="$srcdir/$pkgname-install-$pkgver"
-
-prepare() {                         
-        cd "$_builddir" || return 1
-        for i in $source; do         
-                case $i in        
-                cabal-*.patch)
-                        msg "Applying $i..."         
-                        patch -s -p0 -N -i "$srcdir"/$i || return 1
-                        ;;
-                esac                                           
-        done                                                    
-}    
+builddir="$srcdir/$pkgname-install-$pkgver"
 
 build() {
-	cd "$_builddir"
+	cd "$builddir"
 	(
-		export HOME="$_builddir"
+		export HOME="$builddir"
 		export NO_DOCUMENTATION=1
-		export EXTRA_BUILD_OPTS="--ghc-option=-fPIC --ghc-option=-fllvm"
+		export EXTRA_BUILD_OPTS="--ghc-option=-fllvm"
 		./bootstrap.sh || return 1
 	) || return 1
 }
 
+doc() {
+	default_doc
+	install -Dm644 "$builddir/LICENSE" "$subpkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
+}
+
 package() {
-	cd "$_builddir"
-	install -d "$pkgdir/usr/bin" || return 1
-	install -m755 "$_builddir/dist/build/cabal/cabal" "$pkgdir/usr/bin/cabal" || return 1
+	install -Dm755 "$builddir/dist/build/cabal/cabal" "$pkgdir/usr/bin/cabal" || return 1
 	chrpath -d "$pkgdir/usr/bin/cabal" || return 1
-	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
 }
 md5sums="beb998cdc385523935620381abe393f4  cabal-install-1.24.0.0.tar.gz
-e64c6868b8696f8d49945900af80b30c  cabal-0001-force-ld.gold.patch"
+dbdcab13dfd1c0afac66ad5213885fc0  cabal-0001-force-ld.gold.patch"
 sha256sums="d840ecfd0a95a96e956b57fb2f3e9c81d9fc160e1fd0ea350b0d37d169d9e87e  cabal-install-1.24.0.0.tar.gz
-74a2516bbcb5c7a5a9c8d7633630ce5b3397e160bd0e0c06fd10f104ac08002f  cabal-0001-force-ld.gold.patch"
+9b376e1743e4a8cc6b422bd6cef6c08a4e74d83ec2712a4d5a66c2aaccb482d6  cabal-0001-force-ld.gold.patch"
 sha512sums="0bbd217259e6cd953731179e89dd0b9c972e8634c78d1270c9141daf8be4c53f4817812c93bec86c3cbaf5cc3467497137a4d30c0c594cc27204f0e9aebe6830  cabal-install-1.24.0.0.tar.gz
-35a9127f9aa5689047fbb3ad8757c3c0a3834c15f90d764edcb9ca24652f271c180458715c447d550f5329c0e2368207502318e4ae31292e593c667eeb79d386  cabal-0001-force-ld.gold.patch"
+cb83ea703c3d0d5124a9f35606250c5bc71b67c141512bcdaa285b8a9bb99c5ca34ad1c3cf0c73ea0486215bb46285989ada4967f7e7a972e58cefdbc4eab8a9  cabal-0001-force-ld.gold.patch"

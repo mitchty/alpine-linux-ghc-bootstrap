@@ -8,19 +8,18 @@ url="https://github.com/commercialhaskell/stack"
 arch="x86_64 armhf"
 license="bsd3"
 depends="ca-certificates"
-makedepends="bash ghc ghc-dev cabal pcre-dev"
+makedepends="bash ghc cabal pcre-dev gmp-dev zlib-dev"
 install=""
-subpackages="$pkgname-doc"
+#subpackages="$pkgname-doc"
 source="
 	$pkgname-$pkgver.tar.gz::https://github.com/commercialhaskell/stack/archive/v$pkgver.tar.gz
 	cabal.config
 "
-_builddir="$srcdir/$pkgname-$pkgver"
+builddir="$srcdir/$pkgname-$pkgver"
 
-# Where we have cabal store our sandbox
-buildtmp="$_builddir/tmp"
 build() {
-	cd "$_builddir"
+	local buildtmp="$builddir/tmp"
+	cd "$builddir"
 	install -d "$buildtmp"
 	(
 		export PATH="${PATH}:$buildtmp/.cabal/bin"
@@ -32,12 +31,12 @@ build() {
 }
 
 package() {
-	cd "$_builddir"
-	install -d "$pkgdir/usr/bin" || return 1
-	pkg_stack="$buildtmp/.cabal/bin/$pkgname"
-	install -m755 "$pkg_stack" "$pkgdir/usr/bin" || return 1
-	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
+	install -Dm755 "$builddir/tmp/.cabal/bin/$pkgname" "$pkgdir/usr/bin" || return 1
 }
+
+#doc() {
+#	install -Dm644 $builddir/tmp/LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
+#}
 md5sums="7150fa22bfdb23e07457335fd6853cd9  stack-1.1.2.tar.gz
 fb9c930cd1b8e3f0b355ad08d1d9a64d  cabal.config"
 sha256sums="8f43d69a00a8861b156705a634e55179524cefbd98e6c29182e7bdcb57d8b3be  stack-1.1.2.tar.gz

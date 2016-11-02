@@ -1,16 +1,16 @@
 #-*-mode: Shell-script; coding: utf-8;-*-
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=ghc
+pkgver=8.0.1
+pkgrel=1
 pkgdesc="The Glasgow Haskell Compiler"
 url="http://haskell.org"
-subpackages="$pkgname-doc $pkgname-dev"
+subpackages="$pkgname-doc"
 arch="x86_64 armhf"
-apkgver=8.0.1
-pkgver=$(echo ${apkgver} | tr -d '[a-z]')
-pkgrel=0
-_builddir="$srcdir/$pkgname-$apkgver"
+builddir="$srcdir/$pkgname-$pkgver"
 source="
-	http://downloads.haskell.org/~ghc/${apkgver}/ghc-${apkgver}-src.tar.xz
+	http://downloads.haskell.org/~ghc/${pkgver}/ghc-${pkgver}-src.tar.xz
+	0001-Correct-issue-with-libffi-and-glibc.patch
 "
 
 # Note ghc's license is basically bsd3. If you'd like to know more visit:
@@ -25,7 +25,9 @@ source="
 license="custom:bsd3"
 depends="bash gmp-dev libffi musl zlib ncurses perl gcc llvm3.7"
 install=""
-dev_depends="
+
+# ghc build dependencies
+makedepends="
 	$depends
 	linux-headers
 	musl-dev
@@ -34,59 +36,64 @@ dev_depends="
 	libffi-dev
 	zlib-dev
 	binutils-dev
-"
-
-# ghc build dependencies
-makedepends="
-	$dev_depends
+	binutils-gold
 	ghc-bootstrap
+	paxmark
 "
 
-_ghc_build_tmp="$_builddir/tmp"
+_ghc_build_tmp="$builddir/tmp"
 
 build() {
-	cd "$_builddir"
+	cd "$builddir"
 	cp mk/build.mk.sample mk/build.mk || return 1
-	# Note we diverge from "stock" ghc with -fPIC
-	# to ensure we can link against alpine libraries.
-	# TODO: get html/sphinx docs building
 	cat >> mk/build.mk <<-EOF
-BuildFlavour         = perf-llvm
-SRC_HC_OPTS         += -fPIC
-SRC_HC_OPTS         += -fllvm
-SRC_CC_OPTS         += -fPIC
-GhcLibHcOpts        += -fPIC
-GhcRtsCcOpts        += -fPIC
-INTEGER_LIBRARY      = integer-gmp
-BeConservative       = YES
-GhcLibWays           = v
-GhcLibWays          += dyn
-GhcLibWays          += p
-BUILD_SPHINX_HTML    = NO
-BUILD_SPHINX_PS      = NO
-BUILD_SPHINX_PDF     = NO
-HADDOCK_DOCS         = NO
-EOF
-	./configure --prefix=/usr \
+	BuildFlavour         = perf-llvm
+	INTEGER_LIBRARY      = integer-gmp
+	BeConservative       = YES
+	V                    = 0
+	GhcStage3HcOpts     += -O3
+	SRC_HC_OPTS         += -fPIC
+	SRC_CC_OPTS         += -fno-PIE -fPIC
+	SRC_CC_OPTS         += -nopie
+	EOF
+	if [ "$CARCH" = "x86_64" ]; then
+		# Note we diverge from "stock" ghc by ensuring everything is
+		# compiled without PIC, otherwise the rts gets 32 bit text 
+		# relocations. Only needed on x86_64.
+		cat >> mk/build.mk <<-EOF
+		SplitObjs            = YES
+		EOF
+	fi
+
+	./configure \
+		CONF_CC_OPTS_STAGE2=-fno-PIE \
+		CONF_GCC_LINKER_OPTS_STAGE2=-nopie \
+		CONF_LD_LINKER_OPTS_STAGE2=-nopie \
+		--prefix=/usr \
 		--with-ld=ld.gold || return 1
 	make || return 1
 }
 
-dev() {
-	depends="$dev_depends"
-	cd "$_builddir"
-	pkgdesc="Packages necessary for general ghc development"
-	install -Dm644 LICENSE "$subpkgdir/usr/share/licenses/$subpkgname/LICENSE" || return 1
+doc() {
+	default_doc
+	install -Dm644 "$builddir/LICENSE" "$subpkgdir/usr/share/licenses/$subpkgname/LICENSE" || return 1
 }
 
-# Note, -nopie due to this bug, and must remain until fixed.
-# https://ghc.haskell.org/trac/ghc/ticket/9007
 package() {
-	cd "$_builddir"
+	cd "$builddir"
 	make -j1 DESTDIR="$pkgdir" install || return 1
-	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
-	perl -pi -e 's/.*C compiler link flags.*/ \(\"C compiler link flags\"\, \"-nopie\"\)\,/' "$(find $pkgdir -name settings -type f)"
+	local settings="$(find $pkgdir -name settings -type f)"	
+	# Note, -nopie due to this bug, and must remain until fixed.
+	# Ref:https://ghc.haskell.org/trac/ghc/ticket/9007
+	sed -i 's/.*C compiler link flags", "/& -nopie /' "$settings"
+	paxmark -m "$pkgdir/usr/lib/ghc-$pkgver/bin/ghc"
+	paxmark -m "$pkgdir/usr/lib/ghc-$pkgver/bin/ghc-iserv"
+	paxmark -m "$pkgdir/usr/lib/ghc-$pkgver/bin/ghc-iserv-dyn"
+	paxmark -m "$pkgdir/usr/lib/ghc-$pkgver/bin/ghc-iserv-prof"
 }
-md5sums="c185b8a1f3e67e43533ec590b751c2ff  ghc-8.0.1-src.tar.xz"
-sha256sums="90fb20cd8712e3c0fbeb2eac8dab6894404c21569746655b9b12ca9684c7d1d2  ghc-8.0.1-src.tar.xz"
-sha512sums="5fa69fd0f7a639a10221a35e16c30b00e801644fcb8581903d3e215ecc0b3bd67960fc07a23d84d083b25e17024c69824fc21925cf82c26d8b36ee6c1fc9d28d  ghc-8.0.1-src.tar.xz"
+md5sums="c185b8a1f3e67e43533ec590b751c2ff  ghc-8.0.1-src.tar.xz
+13c68861fdbab7239c7b9d8d13592046  0001-Correct-issue-with-libffi-and-glibc.patch"
+sha256sums="90fb20cd8712e3c0fbeb2eac8dab6894404c21569746655b9b12ca9684c7d1d2  ghc-8.0.1-src.tar.xz
+fc35b8e669189a4e95069f901ce2b3132c36a292f1f23fb14c6123cd784afa15  0001-Correct-issue-with-libffi-and-glibc.patch"
+sha512sums="5fa69fd0f7a639a10221a35e16c30b00e801644fcb8581903d3e215ecc0b3bd67960fc07a23d84d083b25e17024c69824fc21925cf82c26d8b36ee6c1fc9d28d  ghc-8.0.1-src.tar.xz
+6f90b0de1e34c286e54ef14514ffabe17f9012fbc5448b4aacb3687aac065942e0a3a2c1c57b6338121140369a8870b4ce2a6b355c83c43344d4de8909a253a4  0001-Correct-issue-with-libffi-and-glibc.patch"

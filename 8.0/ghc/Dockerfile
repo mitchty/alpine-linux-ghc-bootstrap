@@ -1,4 +1,4 @@
-from ghc-8.0:base
+from ghc-8.0:ghc-bootstrap
 user root
 copy . $ghc
 run find /home/$builduser \! -user $builduser -exec chown -R $builduser:$builduser {} \; && apk update

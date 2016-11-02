@@ -1,54 +1,55 @@
-# Contributor: Mitch Tishmack <mitch.tishmack@gmail.com>
+#-*-mode: Shell-script; coding: utf-8;-*-  
 # Maintainer: Mitch Tishmack <mitch.tishmack@gmail.com>
 pkgname=idris
-pkgver=0.12.2
+pkgver=0.12.3
 pkgrel=0
 pkgdesc="Idris - A Language with Dependent Types"
 url="http://www.idris-lang.org"
 arch="x86_64 armhf"
 license="bsd3"
 depends="libffi gmp ncurses libffi-dev gmp-dev"
-makedepends="bash ghc ghc-dev cabal libffi gmp libffi-dev gmp-dev ncurses-dev"
+makedepends="bash ghc cabal libffi gmp libffi-dev gmp-dev ncurses-dev zlib-dev"
 install=""
 subpackages="$pkgname-doc"
 source="
 	$pkgname-$pkgver.tar.gz::https://github.com/idris-lang/Idris-dev/archive/v$pkgver.tar.gz
 	cabal.config
-	"
-_builddir="$srcdir/Idris-dev-$pkgver"
+"
+builddir="$srcdir/Idris-dev-$pkgver"
 
 build() {
-	cd "$_builddir"
+	cd "$builddir"
 	local buildtmp="$builddir/tmp"
-	install -d "${buildtmp}"
+	install -d "$buildtmp" || return 1
 	(
-		export HOME="${buildtmp}"
+		export HOME="$buildtmp"
 		cabal update || return 1
-		cd ${pkgname}-${pkgver}
-		cp "${srcdir}/cabal.config" cabal.config
-		cabal sandbox init --sandbox "${buildtmp}" || return 1
+		cd "$pkgname-$pkgver"
+		cp "$srcdir/cabal.config" cabal.config || return 1
+		cabal sandbox init --sandbox "$buildtmp" || return 1
 		cabal install libffi -v || return 1
-		cabal install --dependencies-only || return 1
+		cabal install --dependencies-only -v || return 1
 		runhaskell Setup.hs configure --prefix=/usr --enable-split-objs \
 			--enable-shared --docdir=\$prefix/share/doc/\$pkg \
 			--datadir=\$prefix/share --datasubdir=\$pkg-\$version \
 			--libdir=\$prefix/lib --libsubdir=\$pkg-\$version \
-			-fGMP -fstandalone -fFFI \
-			--package-db=${buildtmp}/${CARCH}-linux-ghc-8.0.1-packages.conf.d/ || return 1
+			-fGMP -fstandalone -fFFI -fllvm \
+			--package-db="$buildtmp/$CARCH-linux-ghc-8.0.1-packages.conf.d/" || return 1
 		runhaskell Setup.hs build || return 1
 		# TODO: haddock docs
 	)
 }
 
 package() {
-	cd "$_builddir"
+	cd "$builddir"
 	# TODO: doc installs
-	runhaskell Setup.hs copy --destdir="$pkgdir"
-	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" || return 1
+	runhaskell Setup.hs copy --destdir="$pkgdir" || return 1
+	# We don't need the idris haskell shared library
+	find "$pkgdir" -name "libHSidris*.so" -type f -exec rm {} \;
 }
-md5sums="965dd1131f5c018c30f9f00761901108  idris-0.12.2.tar.gz
+md5sums="b8767bd1d6417a316f4cabd6b820bb57  idris-0.12.3.tar.gz
 f975097a9bb2a21c7b5952a5cf59bcb7  cabal.config"
-sha256sums="6fc70db56113d3d5c3296df3e4982c6ddcf1ff636435378381600a093925400a  idris-0.12.2.tar.gz
+sha256sums="c6f410cddddbc53c4779d3612be40ef4e4f1f11ce8083a811825763daf30ee4d  idris-0.12.3.tar.gz
 27515179d2d153ea9258bc6b55a67ced1cf12a69f505816548f7a1abf9494e49  cabal.config"
-sha512sums="bc8caccb012eba1d57f487b1b555e7e14f8bd6b3401bcb988af2d99320f9937188427db89bfef516f9d57fb3312dd5e8832fb00da16fcafd6dec4facbec1e272  idris-0.12.2.tar.gz
+sha512sums="12d48e0743c49cddca7fac949886ad0718986ee9b1f918e370aa4acc7969c60ff21b78b3527b2f716ef161a8b5700044f4135f768a9229b18330c95f238c3fef  idris-0.12.3.tar.gz
 b87564f3876be9abb62c1bfd509c11ab383092b050128f25408f448a51bb8e4cdfcb5a3e99df223e59d19ed7e6c38b33bc2ee407a7815555cc10f190514efb09  cabal.config"
