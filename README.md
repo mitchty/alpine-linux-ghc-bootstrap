@@ -1,4 +1,11 @@
-# Ghc 8.0.1 on alpine linux x86\_64 and armhf
+# Ghc 8.0.2 on alpine linux x86\_64 and armhf
+
+## Will this go upstream into Alpine proper?
+
+Hoping to, I've submitted 8.0.2 as a new port for the testing repository. Ideally it gets accepted and moved to the community repo. Until then I'll update this repo.
+
+The pull request is here:
+https://github.com/alpinelinux/aports/pull/205 
 
 ## How does one use it?
 
@@ -42,7 +49,7 @@ Valid targets to build are:
 The debian docker cross compiler hosts are isolated, so you can build x86_64 while armhf is building. You probably want to do this as the armhf cross-compiler takes a while to build via llvm.
 
 ## Step 1
-- cd 8.0/ghc-bootstrap && make -j2
+- cd 8.0/ghc-bootstrap && (. ./APKBUILD && snapshot)
 
 This will get you the cross compiler bootstrap that will be used to build the native ghc apk package and thus the rest of cabal and stack.
 
@@ -89,13 +96,9 @@ Probably open an issue and ask me why not. This is all a huge hack thats evolved
 
 NOTE: This process is still a bit janky, I need to improve it at some point.
 
-# Will this go upstream into Alpine proper?
-
-Hoping to, I've submitted 8.0.1 as a new port for the testing repository.
-
 # Will you port 7.8.4?
 
-No. Too old and busted at this point. For arm 7.10.3 is too old and busted. Onwards and upwards!
+No. Too old and busted at this point. For arm 7.10.3 is too old and busted. Onwards and upwards! Besides, arm is one of the reasons for this port.
 
 # Will you port to i386?
 
