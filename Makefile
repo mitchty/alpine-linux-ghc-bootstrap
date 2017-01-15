@@ -34,11 +34,11 @@ resync: from-s3
 
 .PHONY: from-s3
 from-s3: alpine-ghc
-	s3cmd sync --delete-removed s3://alpine-ghc/ alpine-ghc/
+	s3cmd sync --exclude '/logs/*' --delete-removed s3://alpine-ghc/ alpine-ghc/
 
 .PHONY: sync-from-s3
 sync-from-s3: alpine-ghc
-	s3cmd sync s3://alpine-ghc/ alpine-ghc/
+	s3cmd sync --exclude '/logs/*' s3://alpine-ghc/ alpine-ghc/
 
 .PHONY: promote
 promote:
@@ -55,3 +55,7 @@ rsync-next: 8.0/apk
 .PHONY: sync-s3
 sync-s3:
 	s3cmd sync --acl-public alpine-ghc/ s3://alpine-ghc/
+
+.PHONY: sync-s3-next
+sync-s3-next:
+	s3cmd sync --acl-public alpine-ghc/next/ s3://alpine-ghc/next/
