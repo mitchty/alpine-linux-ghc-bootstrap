@@ -39,6 +39,7 @@ apk add alpine-sdk linux-headers musl-dev gmp-dev zlib-dev
 
 etc...
 
+You may also optionally use the *mitchty/alpine-ghc:large* image which contains the above apks as well, but is slightly larger. If a bit more useful for actual development.
 ## Caveat emptor
 
 So I've been using this ghc port since originally porting 7.10.2 in 2015. I know a few others are using this successfully as well. I consider it "stable" at this point. Barring interesting issues like C11 in the musl libc headers confusing some things and other minor annoying issues things should be rather stable at this point.
