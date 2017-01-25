@@ -15,28 +15,35 @@ Two ways, you can either use this docker image:
 docker run --rm -i -t mitchty/alpine-ghc:latest
 ```
 
-Which is basically just the below Dockerfile. Also note to use on non docker one would just add the keys listed and the repository listed.
+Which is essentially the below Dockerfile. Also note to use on non docker one would just add the keys listed and the repository listed.
 
 Use is pretty simple, just add the proper line into */etc/apk/repositories*, and add my signing key to */etc/apk/keys* and *apk update && apk add ghc cabal-install*.
 
 Abbreviated short version, note the pub key is also in examples.
 
-Note: bash is required by the ghc wrapper script you can use busybox sh if you like too.
 ```
 from alpine:latest
 copy mitch.tishmack@gmail.com-55881c97.rsa.pub /etc/apk/keys/mitch.tishmack@gmail.com-55881c97.rsa.pub
 run echo "https://s4-us-west-2.amazonaws.com/alpine-ghc/8.0" >> /etc/apk/repositories; \
     apk update && \
-    apk add ghc ghc-dev cabal alpine-sdk linux-headers musl-dev gmp-dev zlib-dev
+    apk add ghc cabal stack
 env PATH ${PATH}:/root/.cabal/bin
 cmd ["bash"]
 ```
 
+Note: the docker images are setup to reduce size, as such you may need to install header apk's etc... such as:
+
+```
+apk add alpine-sdk linux-headers musl-dev gmp-dev zlib-dev
+```
+
+etc...
+
 ## Caveat emptor
 
-So I've been using this ghc port since originally porting 7.10.2 last year. I know a few others are using this successfully as well. I consider it "stable" at this point. Barring interesting issues like C11 in the musl libc headers confusing some things and other minor annoying issues things should be rather stable at this point.
+So I've been using this ghc port since originally porting 7.10.2 in 2015. I know a few others are using this successfully as well. I consider it "stable" at this point. Barring interesting issues like C11 in the musl libc headers confusing some things and other minor annoying issues things should be rather stable at this point.
 
-# How did I port this?/how does this thing work?
+# How did I port this?/how does this thing work? WARNING: out of date and I'm revamping this to pull from what I'm trying to upstream
 
 Current build steps to reproduce what I've built (not all automatic yet):
 
@@ -46,7 +53,7 @@ Valid targets to build are:
 - x86\_64
 - armhf
 
-The debian docker cross compiler hosts are isolated, so you can build x86_64 while armhf is building. You probably want to do this as the armhf cross-compiler takes a while to build via llvm.
+The debian docker cross compiler hosts are isolated, so you can build x86_64 while armhf is building. You probably want to do this as the armhf cross-compiler takes a while to build via llvm. ~7 hours on an i7 skylake.
 
 ## Step 1
 - cd 8.0/ghc-bootstrap && (. ./APKBUILD && snapshot)
@@ -100,6 +107,6 @@ NOTE: This process is still a bit janky, I need to improve it at some point.
 
 No. Too old and busted at this point. For arm 7.10.3 is too old and busted. Onwards and upwards! Besides, arm is one of the reasons for this port.
 
-# Will you port to i386?
+# Will you port to i386/other arch?
 
-Me? Nope, I have no need for 32 bit x86 ghc. It wouldn't be hard to add into the fray however.
+Me? Nope, I have no need for 32 bit x86 ghc. It wouldn't be hard to add into the fray however. Primarily it involves setting up the cross compiler docker to generate a new arch. *git diff --no-index Dockerfile.x86_64 Dockerfile.armhf* for an idea of what would need to happen. I tried making the bootstrap process as straightforward as possible.
