@@ -1,3 +1,9 @@
+# OBSOLETE: This is now upstreamed to alpine linux testing/edge
+
+Please vote for it there and confirm it works for ghc to move to community. Thanks to everyone for all the help!
+
+Original readme follows:
+
 # Ghc 8.0.2 on alpine linux x86\_64 and armhf
 
 ## Will this go upstream into Alpine proper?
